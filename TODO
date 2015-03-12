@@ -17,3 +17,6 @@ if you run
 "from pyspec import *" 
 
 python should check the __init__.py file to see what order to import everyone
+
+
+.datadir and anything associated needs a new home and should have no calls from h5nmr, matlablike, or nmr.
