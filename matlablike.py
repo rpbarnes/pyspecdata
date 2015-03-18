@@ -2654,6 +2654,8 @@ class nddata (object):
             self.data_error = reshape(array(args[0]),shape(self.data))
         elif (len(args) is 2) and (type(args[0]) is str) and (type(args[1]) is ndarray):
             self.axis_coords_error[self.axn(args[0])] = args[1]
+        elif (len(args) is 2) and (type(args[0]) is str) and (args[1] is None):
+            self.axis_coords_error[self.axn(args[0])] = args[1]
         elif (len(args) is 1) and args[0] is None:
             self.data_error = None
         else:

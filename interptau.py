@@ -23,6 +23,7 @@ def calcrho(omegaH,tau):
 	denom = 6.*J(omega-omegaH,tau)+3.*J(omegaH,tau)+J(omega+omegaH,tau)
 	return denom
 def interptau(xiinput,nmr_freq,simple = False,tau_short = 10**(-15),tau_long = 10**(-8)):
+    # This should be changed to take an nddata with error and do the error propagation through the interpolation.
     tau = logspace(log10(tau_short),log10(tau_long),1000)
     B0 = double(nmr_freq)*1e6/4.258e7
     omegaH = 2*pi*B0*4.258e7
@@ -33,6 +34,31 @@ def interptau(xiinput,nmr_freq,simple = False,tau_short = 10**(-15),tau_long = 1
         return interpresult
     else:
         return interpresult,tau,xi
+def interptauND(xiinput,nmr_freq,tau_short = 10**(-15),tau_long = 10**(-8)):
+    """ This calculates the correlation time from a given coupling factor using the force free hard sphere model.
+
+    Args:
+    xiinput - (nddata) of coupling factor values. If contains error the error will be propagated and the output nddata of correlation times will contain the propagated error.
+    nmr_freq - (float) frequency of NMR in experiment in MHz.
+
+    Returns:
+    correlation time interpolated from FFHS as an nddata.
+    """
+    tauValues = logspace(log10(tau_short),log10(tau_long),1000)
+    B0 = double(nmr_freq)*1e6/4.258e7
+    omegaH = 2*pi*B0*4.258e7
+    xi = calcxi(omegaH,tauValues)
+    order = argsort(xi)
+    tau = xiinput.copy()
+    tau.data = interp(xiinput.data,xi[order],tauValues[order])
+    if xiinput.get_error() != None:
+        # This is the best way I can think of to estimate an error from the couplingFactor data, just because this interpolation is not linear...
+        tauHigh = interp((xiinput.data + xiinput.get_error()),xi[order],tauValues[order])
+        tauLow = interp((xiinput.data - xiinput.get_error()),xi[order],tauValues[order])
+        tauError = abs(tauHigh - tauLow)
+        tau.set_error(tauError)
+    return tau
+
 def interpxi(tauinput,nmr_freq,simple = False,tau_short = 10**(-15),tau_long = 10**(-8)):
     tau = logspace(log10(tau_short),log10(tau_long),1000)
     B0 = double(nmr_freq)*1e6/4.258e7
