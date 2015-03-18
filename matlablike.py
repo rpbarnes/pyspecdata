@@ -2922,7 +2922,7 @@ class nddata (object):
             A,B = self.aligndata(arg)
         except:
             raise CustomError("Error aligning right (arg) name:",arg.name(),"with left (self) name:",self.name(),"shapes are (resp):",ndshape(arg),ndshape(self))
-        retval = A
+        retval = A.copy()
         retval.data = A.data / B.data
         #{{{ if we have error for both the sets of data, I should propagate that error
         Aerr = A.get_error()
@@ -2934,12 +2934,18 @@ class nddata (object):
                 Rerr += (complex128(Aerr)/complex128(B.data))**2
             else:
                 Rerr += (Aerr/B.data)**2
+                print "I add error ", Rerr," from A"
         if Berr != None:
             if (A.data.dtype is dt128) or (Berr.dtype is dt128) or (B.data.dtype is dt128):# this should avoid the error that Ryan gets
                 Rerr += (complex128(A.data)*complex128(Berr)/(complex128(B.data)**2))**2
             else:
                 try:
                     Rerr += (A.data*Berr/(B.data**2))**2
+                    new = (-1*A.data*Berr/B.data**2)**2
+                    print "I add error ",new," from B"
+                    print "Adata = ",A.data
+                    print "Berr = ",Berr
+                    print "Bdata = ",B.data
                 except:
                     raise CustomError('self was',self,
                             'arg was',arg,

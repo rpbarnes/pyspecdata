@@ -168,22 +168,44 @@ def loadDict(fileName): #{{{
         f.close()
         return dic #}}}
 
-#{{{ dictToNdData - return an nddata from a dictionary entry given the tag for the specific data.
-def dictToNdData(dataTag,dictionary):
-    """ This will return a one dimensional nddata from a dictionary entry from the ODNP workup.
+def stringifyDictionary(dictionary):#{{{
+    """ this forces every key and value to a string to prevent weirdness with the date and repeat entries.
+
+    Note the input dictionary must not have a data entry nor a _id entry string.
+    Args:
+    dictionary - (dictionary) this is the standard mongodb entry without id tags or data entry
+
+    Returns:
+    outputDict - (dictionary) every value is string.
+    """
+    outputDict = {}
+    for key, value in dictionary.iteritems():
+        outputDict.update({str(key):str(value)})
+    return outputDict#}}}
+
+def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False): #{{{ dictToNdData - return an nddata from a dictionary entry given the tag for the specific data.
+    """ This will return a one dimensional nddata from a dictionary entry from the ODNP workup. This also preserves the input dictionary. -- In future you should expand this to handle mutlidimensional sets.
 
     args:
     dataTag - (string) either 'enhancement' 'kSigma' or 't1' this tells which data to pull from the dictionary
     dictionary - (dictionary) this is the dictionary pulled from mongoDB
+    retValue - (boolean) True - returns stored fit value instead of series data. E.g. kSigma is saved with power series data and the fit value for kSigma, if you set retValue = True this function returns the fit value and fit error as an nddata set. False - returns series data, with dims defined by dimNames
+    dim0 - (boolean False, string True) - Only checked if retValue is True. String entered must be a key in given dictionary. Will set name of dim0 to key entered and the value of dim0 to the value of said key in given dictionary. --- Note to self this really must be a specialized thing. for now this will just return a string as dim0 and user must handle elsewhere.
 
     Returns:
-    nddata
+    nddata - with .other_info set to remaining metadata from dictionary entry
     """
     copyDict = dictionary.copy()
     dataDict = copyDict.get('data').get(dataTag)
     copyDict.pop('data')
     copyDict.pop('_id')
-    data = nddata(array(dataDict.get('data'))).rename('value',str(dataDict.get('dimNames')[0])).labels(str(dataDict.get('dimNames')[0]),array(dataDict.get('dim0'))).set_error(dataDict.get('error'))
+    if retValue:
+        if dim0:
+            data = nddata(array(dataDict.get('value'))).rename('value',dim0).labels(dim0,dataDict.get('dim0')).set_error(dataDict.get('valueError'))
+        else:
+            data = nddata(array(dataDict.get('value'))).set_error(dataDict.get('valueError'))
+    else:
+        data = nddata(array(dataDict.get('data'))).rename('value',str(dataDict.get('dimNames')[0])).labels(str(dataDict.get('dimNames')[0]),array(dataDict.get('dim0'))).set_error(dataDict.get('error')) # this should be expanded to handle more than one dimension.
     data.other_info = copyDict
     return data
 #}}}
