@@ -1,6 +1,9 @@
 from matlablike import *
 import sympy
 
+### Ryan add in linear weighted fit class using the lmfit package.
+### Ryan add in stretched exponential fit class using bounded values also from lmfit package.
+
 #{{{ different types of fit classes
 class rate_curve(fitdata):
     'for multiplicity, see t2curve'
