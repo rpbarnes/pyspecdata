@@ -1,0 +1,53 @@
+\documentclass[10pt]{book}
+\newif\ifshowall
+\showalltrue
+%\showallfalse
+%\documentclass[twocolumn,nofootinbib]{revtex4}
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+\usepackage{mynotebook}
+%\usepackage[english,greek]{babel}
+\synctex=1
+%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
+%DIF UNDERLINE PREAMBLE %DIF PREAMBLE
+\RequirePackage[normalem]{ulem} %DIF PREAMBLE
+\RequirePackage{color}\definecolor{RED}{rgb}{1,0,0}\definecolor{BLUE}{rgb}{0,0,1} %DIF PREAMBLE
+%\providecommand{\DIFadd}[1]{\begingroup\protect\color{blue}\uwave{#1}\endgroup} %DIF PREAMBLE
+\providecommand{\DIFadd}[1]{#1} %DIF PREAMBLE
+%\providecommand{\DIFdel}[1]{\begingroup\protect\color{red}\sout{#1}\endgroup}                      %DIF PREAMBLE
+\providecommand{\DIFdel}[1]{#1}                      %DIF PREAMBLE
+%DIF SAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddbegin}{\color{blue}} %DIF PREAMBLE
+\providecommand{\DIFaddend}{\color{black}} %DIF PREAMBLE
+\providecommand{\DIFdelbegin}{} %DIF PREAMBLE
+\providecommand{\DIFdelend}{} %DIF PREAMBLE
+%DIF FLOATSAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+\providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF
+\usepackage[nolandscape]{mylists}
+
+\author{Ryan Barnes}
+\title{Pyspecdata Software Issue Log}
+\date{\today}
+\begin{document}
+\maketitle
+
+\section{Bugs}
+Here I put a collection of problems with the code that need dealt with. I want to share this with John as it seems he likes to do the fixing, although this is also for me to keep track of things that I need / will fix in my forked repo.
+\begin{enumerate}
+    \item $\Box$ If data set has associated error the following will throw an error 'data['dimName',lambda x: x < value] = 0.0' It will also throw and error if you index instead.
+\end{enumerate}
+
+\section{Issues}
+These are a collection of things that I think need fixed or reorganized or implemented for convenience but are not so troublesome as to call 'bugs'.
+\begin{enumerate}
+    \item $\Box$ concat(listOfNdData,'dimname') returns data as complex regardless of dataType in listOfNdDatanddataSet
+    \item $\checkmark$ plot(nddata) should give reasonable xlim and ylim bounds based on dimension and data and data error. Say by default it gives bounds that give a 10\% boarder of whitespace around the plotted data. \o[This is fixed in a after call. Call giveSpace(spaceVal) after plot(data) and the axes dimensions will be resized to give a white space determined by spaceVal * dimensionMax. Also note this calculates dimensionMax from ax.get\_xticks() / .get\_yticks() so this will include and data error.]{spaceVal is kwarg, you can call as giveSpace() with default 10\% white space.}
+\end{enumerate}
+
+\end{document}

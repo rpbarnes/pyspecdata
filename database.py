@@ -9,6 +9,13 @@ import numpy as np
 import pickle
 from matlablike import * # unfortunately we're back to this because I'm not very smart...
 
+"""
+#################################################################################
+Things that need done here.
+1) You need a function to write a list of nddata sets to the data base given the list of nddatas and a dictionary instance. This should also take a dictionary instance with a 'data' key and append the new data to the already existing data in the data key.
+#################################################################################
+"""
+
 
 def modDictVals(dictionary,databaseCollection=False,dictType='database',verbose=False):#{{{
     """ Modify and return a dictionary instance using the command line to query the user. This serves for modification of both the database parameters dictionary as well as the experiment parameters dictionary.

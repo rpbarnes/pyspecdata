@@ -1401,6 +1401,23 @@ def contour_plot(xvals,yvals,zvals,color = 'k',alpha = 1.0,npts = 300,**kwargs):
         inline_spacing = inline_spacing,
         alpha = alpha)
     #}}}
+def giveSpace(spaceVal = 0.1):#{{{
+    """
+    This should be called after plot(data) call. This function will put a white spacing around any data and associated error on both x and y dimensions
+    """
+    ax = gca()
+    xticks = ax.get_xticks()
+    xspace = xticks.max()*spaceVal
+    xmin = xticks.min() - xspace
+    xmax = xticks.max() + xspace
+    ax.set_xlim(xmin,xmax)
+    # y axis 
+    yticks = ax.get_yticks()
+    yspace = yticks.max()*spaceVal
+    ymin = yticks.min() - yspace
+    ymax = yticks.max() + yspace
+    ax.set_ylim(ymin,ymax)#}}}
+
 def plot_updown(data,axis,color1,color2,symbol = '',**kwargs):
     if symbol == '':
         symbol = 'o'
