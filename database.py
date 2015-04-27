@@ -8,6 +8,7 @@ This is primarily targeted to work with mongoDB however any noSQL database forma
 import numpy as np
 import pickle
 from matlablike import * # unfortunately we're back to this because I'm not very smart...
+import csv
 
 """
 #################################################################################

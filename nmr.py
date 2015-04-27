@@ -219,7 +219,7 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
 
     Args:
     fullPath - (string) 'path/to/expDirectory'
-    powerfile - (string) 'fileName.mat'
+    powerfile - (string) 'fileName', do not include extension .mat or .csv
     expTimeMin - (double) minimum experiment time. Use output of returnExpTimes() as entry
     expTimeMax - (doble) maximum experiment time. Usually time and a half of expTimeMin.
     dnpPowers - (boolean) if True adds initial power before the first power step.
@@ -227,12 +227,25 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
     timeDropStart - (boolean False or double) times before set value are dropped.
 
     """
+    if os.path.isfile(fullPath + '/' + powerfile + '.mat'): # This is a matlab file from cnsi
+        openfile = loadmat(fullPath + '/' + powerfile + '.mat')
+        power = openfile.pop('powerlist')
+        power = array([x for i in power for x in i])
+        time = openfile.pop('timelist')
+        time = array([x for i in time for x in i])
+    elif os.path.isfile(fullPath + '/' + powerfile + '.csv'): # This is a csv file
+        openfile = open(fullPath + '/' + powerfile + '.csv','r')
+        lines = openfile.readlines()
+        lines.pop(0)
+        timeList = []
+        powerList = []
+        for line in lines:
+            time,power = line.split('\r')[0].split(',')
+            timeList.append(float(time))
+            powerList.append(float(power))
+        time = array(timeList)
+        power = array(powerList)
 
-    openfile = loadmat(fullPath + '/' + powerfile)
-    power = openfile.pop('powerlist')
-    power = array([x for i in power for x in i])
-    time = openfile.pop('timelist')
-    time = array([x for i in time for x in i])
     if timeDropStart:
         power = power[timeDropStart:-1]
         time = time[timeDropStart:-1]
