@@ -236,6 +236,8 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
     elif os.path.isfile(fullPath + '/' + powerfile + '.csv'): # This is a csv file
         openfile = open(fullPath + '/' + powerfile + '.csv','r')
         lines = openfile.readlines()
+        if len(lines) == 1:
+            lines = lines[0].split('\r') # this might not be what I want to do...
         lines.pop(0)
         timeList = []
         powerList = []
@@ -262,7 +264,8 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
         if dp[i] >= threshold:
             timeBreak.append(time[i])
     firstFigure = nextfigure(firstFigure,'DerivativePowerSeries' + powerfile.split('.')[0])
-    plot(time[:-1],dp)
+    print 'length of time', len(time), 'length of power', len(power)
+    plot(time[0:len(dp)],dp)
     ylabel('$dP/dt$ $(dBm/s)$')
     xlabel('seconds')
     axhline(y=threshold,color='k')
@@ -291,7 +294,7 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
     ylim(-0.5,2)
 
     firstFigure = nextfigure(firstFigure,'PowerSeries' + powerfile.split('.')[0])
-    expPowers = nddata(power).rename('value','time').labels(['time'],[time])
+    expPowers = nddata(power).rename('value','time').labels(['time'],[time[0:len(power)]])
     plot(expPowers)
     powers = []
     ### Average the power over the time breaks 
@@ -1028,6 +1031,7 @@ def integrate(file,expno,
         pdfstring = '',
         phnum = [],
         phchannel = [],
+        returnIntData= False,
         offset_corr = 0):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
     #print lsafen("DEBUG: yes, integrate was called")
@@ -1229,6 +1233,8 @@ def integrate(file,expno,
         newdata.set_error(sqrt(newnoise.data.flatten()*number_of_integral_points))
     if first_figure == None:
         return newdata
+    elif returnIntData:
+        return newdata,figurelist,plot_newdata
     else:
         return newdata,figurelist
     #}}}
@@ -1421,7 +1427,7 @@ def matched_filter(data,along_dim,decay_rate = 1,return_fit=False):
         data_abs.mean(thisdim)
     p = exp_fit(timeaxis,data_abs.data)
     #}}}
-    #{{{ actually apply the filter
+    #{{{ actually apply the filter, note this does not actually apply the filter..
     filter = ndshape(data)
     for thisdim in labels:
         filter.pop(thisdim)

@@ -3783,8 +3783,8 @@ class nddata (object):
         newshape = list(newshape)
         return self.getaxis(axisname).copy().reshape(newshape)
     def retaxis(self,axisname):
-        thisaxis = self._axis_inshape(axisname)
-        return nddata(thisaxis,thisaxis.shape,list(self.dimlabels)).labels(axisname,thisaxis.flatten())
+        thisaxis = self._axis_inshape(str(axisname))
+        return nddata(thisaxis,thisaxis.shape,list(self.dimlabels)).labels(str(axisname),thisaxis.flatten())
     def fromaxis(self,*args,**kwargs):
         '''enter just the axis, to return the axis,
         or enter a list of axisnames, followed by a function to act on them'''
