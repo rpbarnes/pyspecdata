@@ -1877,13 +1877,14 @@ def plot(*args,**kwargs):
         myy = squeeze(myy.data)
     #}}}
     #{{{ semilog where appropriate
-    if (myx != None) and (len(myx)>1): # by doing this and making myplotfunc global, we preserve the plot style if we want to tack on one point
-        try:
-            b = diff(log10(myx))
-        except:
-            raise CustomError('likely a problem with the type of the x label, which is',myx)
-        if (size(b)>3) and all(abs((b-b[0])/b[0])<1e-4) and not ('nosemilog' in kwargs.keys()):
-            myplotfunc = ax.semilogx
+    # I don't want to semilog and I'm not sure why this got changed...
+    #if (myx != None) and (len(myx)>1): # by doing this and making myplotfunc global, we preserve the plot style if we want to tack on one point
+    #    try:
+    #        b = diff(log10(myx))
+    #    except:
+    #        raise CustomError('likely a problem with the type of the x label, which is',myx)
+    #    if (size(b)>3) and all(abs((b-b[0])/b[0])<1e-4) and not ('nosemilog' in kwargs.keys()):
+    #        myplotfunc = ax.semilogx
     if ('nosemilog' in kwargs.keys()):
         #print 'this should pop nosemilog'
         kwargs.pop('nosemilog')
