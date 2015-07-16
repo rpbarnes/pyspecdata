@@ -214,7 +214,7 @@ def auto_steps(filename,threshold = -35, upper_threshold = 30.0, t_minlength = 0
 
 #}}} This is modified to just take power and time arrays instead of a power file, Depending on the shiz this may not be necessary, power_nddata should be an nddata with an axis labeled 't'
 
-def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPowers = True,threshold = 0.5,timeDropStart=False,titleString = '',firstFigure = []): #{{{ Return the powers
+def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addInitialPower = True,threshold = 0.5,timeDropStart=False,titleString = '',firstFigure = []): #{{{ Return the powers
     """ Reads power file from odnp experiment and returns a list of the determined power steps.
 
     Args:
@@ -222,7 +222,7 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
     powerfile - (string) 'fileName', do not include extension .mat or .csv
     expTimeMin - (double) minimum experiment time. Use output of returnExpTimes() as entry
     expTimeMax - (doble) maximum experiment time. Usually time and a half of expTimeMin.
-    dnpPowers - (boolean) if True adds initial power before the first power step.
+    addInitialPower - (boolean) if True adds initial power before the first power step.
     threshold - (double) threshold value for the power steps. Units = (d dBm / d t) - differential
     timeDropStart - (boolean False or double) times before set value are dropped.
 
@@ -284,8 +284,8 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,dnpPow
             count -= 1 # you must force the counter to roll back and account for throwing away a value
         count += 1
 
-    if dnpPowers:
-        # This is for the DNP power experiment. Experiment 6 is performed at the attenuation that the amp was warmed up at and thus the algorithm does not pick it up so we want to add this
+    if addInitialPower:
+        ### This is for any experiment that was run at the attenuation that the amplifier was warmed up at. Because you wont catch any jump
         expTime = timeBreak[1] - timeBreak[0] # The time for an experiment
         timeBreak.insert(0,timeBreak[0] - expTime)
 

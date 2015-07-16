@@ -14,6 +14,7 @@ import csv
 #################################################################################
 Things that need done here.
 1) You need a function to write a list of nddata sets to the data base given the list of nddatas and a dictionary instance. This should also take a dictionary instance with a 'data' key and append the new data to the already existing data in the data key.
+2) a function to return all possible keys and not irrelevant keys given search constraints on the dictionary.
 #################################################################################
 """
 
