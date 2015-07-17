@@ -16,6 +16,10 @@ def dbm_to_power(dbm,cavity_setup = 'newcnsi'):
         attenuation = 30.0 # starting 6/20/11 this is actually what it uses, because I removed the extra -10, etc, in h5nmr.py
     if cavity_setup == 'newcnsi':
         attenuation = 35.16 # plus or minus a full dB --> this was measured
+    if cavity_setup == 'EMX-CNSI': # Identifies the CNSI spectrometer
+        attenuation = 35.16
+    if cavity_setup == 'EMX-HL': # Identifies the EMX-HL spectrometer
+        attenuation = 20.0 # I haven't measured this.
     elif cavity_setup == 'te102':
         attenuation = 40.0
     elif cavity_setup == 'dielectric':
