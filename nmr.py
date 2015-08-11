@@ -289,9 +289,8 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addIni
         count += 1
 
     if addInitialPower:
-        timeBreak.sort()
         ### This is for any experiment that was run at the attenuation that the amplifier was warmed up at. Because you wont catch any jump
-        expTime = abs(timeBreak[1] - timeBreak[0]) # The time for an experiment
+        expTime = timeBreak[1] - timeBreak[0] # The time for an experiment
         timeBreak.insert(0,timeBreak[0] - expTime)
 
     for val in timeBreak:
@@ -548,11 +547,11 @@ def load_indiv_file(filename,dimname='',return_acq=False,add_sizes=[],add_dims=[
         fp = open(filename+'ser','rb')
         data = fp.read()
         if float(v.get('BYTORDA')) == float(1.0):
-            ### The data is big endian format
+            ### Read for big endian
             data = array(struct.unpack('>%di'%(len(data)/4),data),
                     dtype='complex128')
-        elif float(v.get('BYTORDA')) == float(0.0):
-            ### The data is little endian format
+        if float(v.get('BYTORDA')) == float(0.0):
+            ### Read for little endian
             data = array(struct.unpack('<%di'%(len(data)/4),data),
                     dtype='complex128')
         data = data[0::2]+1j*data[1::2]
@@ -584,8 +583,8 @@ def load_indiv_file(filename,dimname='',return_acq=False,add_sizes=[],add_dims=[
         t1axis = r_[0:td1]
         mylabels = [t1axis]+[t2axis]
         data.labels(mydimnames,mylabels)
-        #shiftpoints = int(bruker_det_phcorr(v)) # use the canned routine to calculate the first order phase shift
-        #data.circshift('t2',shiftpoints)
+        shiftpoints = int(bruker_det_phcorr(v)) # use the canned routine to calculate the first order phase shift
+        data.circshift('t2',shiftpoints)
         data.set_units('t2','s')
         data.set_units('digital')
         data.other_info['title'] = bruker_load_title(filename)
@@ -881,17 +880,10 @@ def bruker_load_acqu(file,whichdim='',return_s = True):
                 if len(data)>0:
                     while '' in data:
                         data.remove('')
-                    while '<>' in data:
-                        data.remove('<>')
-                    while '<mlev>' in data:
-                        data.remove('<mlev>')
-                    while '<sine.100>' in data:
-                        data.remove('<sine.100>')
                     try:
                         data = map(double,data)
                     except:
-                        print "couldn't map data, ",data
-                    print '\n\n'
+                        print "can't map ",data," to float."
                     if len(data)-1!= thislen[1]:
                         print 'error:',len(data)-1,'!=',thislen[1]
             vars.update({name:data})
@@ -1053,7 +1045,8 @@ def integrate(file,expno,
         phnum = [],
         phchannel = [],
         returnIntData= False,
-        offset_corr = 0):
+        offset_corr = 0,
+        test_drift_limit = False):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
     #print lsafen("DEBUG: yes, integrate was called")
     figurelist = figlistini_old(first_figure)
@@ -1113,10 +1106,9 @@ def integrate(file,expno,
     data_center = data_abs.copy() # since data_abs is currently not used, but I want to use it to do matched filtered integration, really need to make a separate variable here
     f = data_center.getaxis('t2')
     data_center['t2',abs(f-f[topavg])>max_drift] = 0# we need to keep the indeces in place, but don't want to pick anything too far out of the way
-    test_drift_limit = False
-    if test_drift_limit:
-        plot(data_center.reorder(['t2',dimname]))
-        return
+    #if test_drift_limit:
+    #    figure()
+    #    plot(data_center.reorder(['t2',dimname]))
     data_center_sum = data_center.copy()
     data_center_sum.sum_nopop('t2')
     data_center.data[:] /= data_center_sum.data # now the it sums to one so we can get a weighted average over the indeces
@@ -1134,7 +1126,6 @@ def integrate(file,expno,
         intpoints = floor(integration_width/(df))
     #}}}
     data_shape['t2'] = intpoints*2+1
-
     newdata = []
     newnoise = []
     center[center<intpoints] = intpoints # prevent a bug where the integration range exceeds the spectrum
