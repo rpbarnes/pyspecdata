@@ -289,8 +289,9 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addIni
         count += 1
 
     if addInitialPower:
+        timeBreak.sort()
         ### This is for any experiment that was run at the attenuation that the amplifier was warmed up at. Because you wont catch any jump
-        expTime = timeBreak[1] - timeBreak[0] # The time for an experiment
+        expTime = abs(timeBreak[1] - timeBreak[0]) # The time for an experiment
         timeBreak.insert(0,timeBreak[0] - expTime)
 
     for val in timeBreak:
@@ -546,8 +547,14 @@ def load_indiv_file(filename,dimname='',return_acq=False,add_sizes=[],add_dims=[
         td2_zf = int(ceil(td2/256.)*256) # round up to 256 points, which is how it's stored
         fp = open(filename+'ser','rb')
         data = fp.read()
-        data = array(struct.unpack('>%di'%(len(data)/4),data),
-                dtype='complex128')
+        if float(v.get('BYTORDA')) == float(1.0):
+            ### The data is big endian format
+            data = array(struct.unpack('>%di'%(len(data)/4),data),
+                    dtype='complex128')
+        elif float(v.get('BYTORDA')) == float(0.0):
+            ### The data is little endian format
+            data = array(struct.unpack('<%di'%(len(data)/4),data),
+                    dtype='complex128')
         data = data[0::2]+1j*data[1::2]
         data /= rg
         mydimsizes = [td1,td2_zf/2]
@@ -577,8 +584,8 @@ def load_indiv_file(filename,dimname='',return_acq=False,add_sizes=[],add_dims=[
         t1axis = r_[0:td1]
         mylabels = [t1axis]+[t2axis]
         data.labels(mydimnames,mylabels)
-        shiftpoints = int(bruker_det_phcorr(v)) # use the canned routine to calculate the first order phase shift
-        data.circshift('t2',shiftpoints)
+        #shiftpoints = int(bruker_det_phcorr(v)) # use the canned routine to calculate the first order phase shift
+        #data.circshift('t2',shiftpoints)
         data.set_units('t2','s')
         data.set_units('digital')
         data.other_info['title'] = bruker_load_title(filename)
@@ -874,7 +881,17 @@ def bruker_load_acqu(file,whichdim='',return_s = True):
                 if len(data)>0:
                     while '' in data:
                         data.remove('')
-                    data = map(double,data)
+                    while '<>' in data:
+                        data.remove('<>')
+                    while '<mlev>' in data:
+                        data.remove('<mlev>')
+                    while '<sine.100>' in data:
+                        data.remove('<sine.100>')
+                    try:
+                        data = map(double,data)
+                    except:
+                        print "couldn't map data, ",data
+                    print '\n\n'
                     if len(data)-1!= thislen[1]:
                         print 'error:',len(data)-1,'!=',thislen[1]
             vars.update({name:data})
