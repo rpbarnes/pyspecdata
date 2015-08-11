@@ -1134,6 +1134,7 @@ def integrate(file,expno,
         intpoints = floor(integration_width/(df))
     #}}}
     data_shape['t2'] = intpoints*2+1
+
     newdata = []
     newnoise = []
     center[center<intpoints] = intpoints # prevent a bug where the integration range exceeds the spectrum
