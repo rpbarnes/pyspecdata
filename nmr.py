@@ -1046,6 +1046,7 @@ def integrate(file,expno,
         phchannel = [],
         returnIntData= False,
         offset_corr = 0,
+        timeZeroGlitch = True,
         test_drift_limit = False):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
     #print lsafen("DEBUG: yes, integrate was called")
@@ -1084,6 +1085,26 @@ def integrate(file,expno,
     # also remove all debug statements
     #print 'DEBUG: before phcyc, figlist is',lsafen(figurelist)
     data,figurelist = phcyc(data,names = phcycdims,selections = phchannel, show_plot = ['t2',(lambda x:abs(x)<peak_within)],first_figure = figurelist,pdfstring = pdfstring,bandpass = bandpass) # ft along t2, applying phase cycle where necessary
+    if timeZeroGlitch:
+        # Remove the zero glitch that occurs before the actual FID.
+        data.ift('t2',shift = True)
+        ### Pull out the initial receiver glitch and zero fill then end of the data set.
+        zeroglitch = data.runcopy(abs)
+        zeroglitch.sum(dimname)
+        glitch = zeroglitch.run(argmax,'t2').data
+        glitch += 5 # Just to be sure you get all of the crap
+        dataList = []
+        for count in range(len(data.getaxis(dimname))):
+            zeroFree = data[dimname,count]
+            zeroFree = nddata(array(list(zeroFree['t2',glitch:].data) + [complex(0.0)]*glitch)).rename('value','t2').labels('t2',data.getaxis('t2'))
+            dataList.append(zeroFree)
+        data = concat(dataList,dimname).labels(dimname,data.getaxis(dimname))
+        data.reorder('t2',dimname)
+        figurelist = nextfigure(figurelist,'zeroGlitchRemoval' + pdfstring)
+        plot(data)
+        title('After cutting and zero filling')
+        data.ft('t2',shift = True)
+
     data_shape = ndshape(data) # this is used to shape the output
     #{{{ abs w/ max SNR, so we can pick the peak
     data_abs = data.copy()
@@ -1106,9 +1127,9 @@ def integrate(file,expno,
     data_center = data_abs.copy() # since data_abs is currently not used, but I want to use it to do matched filtered integration, really need to make a separate variable here
     f = data_center.getaxis('t2')
     data_center['t2',abs(f-f[topavg])>max_drift] = 0# we need to keep the indeces in place, but don't want to pick anything too far out of the way
-    #if test_drift_limit:
-    #    figure()
-    #    plot(data_center.reorder(['t2',dimname]))
+    if test_drift_limit:
+        plot(data_center.reorder(['t2',dimname]))
+
     data_center_sum = data_center.copy()
     data_center_sum.sum_nopop('t2')
     data_center.data[:] /= data_center_sum.data # now the it sums to one so we can get a weighted average over the indeces
