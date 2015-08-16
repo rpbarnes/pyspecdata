@@ -7,6 +7,8 @@ import struct
 import os
 import fornotebook
 from scipy.io import loadmat
+import datetime
+import time
 
 def OUTPUT_notebook():
     return True
@@ -218,18 +220,19 @@ def auto_steps(filename,threshold = -35, upper_threshold = 30.0, t_minlength = 0
 
 #}}} This is modified to just take power and time arrays instead of a power file, Depending on the shiz this may not be necessary, power_nddata should be an nddata with an axis labeled 't'
 
-def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addInitialPower = True,threshold = 0.5,timeDropStart=False,titleString = '',firstFigure = []): #{{{ Return the powers
+def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshold = 0.5,titleString = '',firstFigure = []): #{{{ Return the powers
     """ Reads power file from odnp experiment and returns a list of the determined power steps.
 
     Args:
     fullPath - (string) 'path/to/expDirectory'
     powerfile - (string) 'fileName', do not include extension .mat or .csv
-    expTimeMin - (double) minimum experiment time. Use output of returnExpTimes() as entry
-    expTimeMax - (doble) maximum experiment time. Usually time and a half of expTimeMin.
-    addInitialPower - (boolean) if True adds initial power before the first power step.
+    absTime - (list of tuples) the absolute time values for the (start, stop) of each NMR experiment. This is returned from returnExpTimes in nmr.py
     threshold - (double) threshold value for the power steps. Units = (d dBm / d t) - differential
-    timeDropStart - (boolean False or double) times before set value are dropped.
 
+    Returns:
+    powerList - (array) This is an array of the average power value measured between each start and stop time of the absTimes list.
+
+    This code works by aligning the time values given in absTime to the last spike of the derivative powers spectrum. The last spike corresponds to when the amplifier is turned off and typically has the largest spike. Once the times are aligned I average the power between each start and stop time. I return the average of the power values.
     """
     if os.path.isfile(fullPath + '/' + powerfile + '.mat'): # This is a matlab file from cnsi
         openfile = loadmat(fullPath + '/' + powerfile + '.mat')
@@ -252,11 +255,7 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addIni
         time = array(timeList)
         power = array(powerList)
 
-    if timeDropStart:
-        power = power[timeDropStart:-1]
-        time = time[timeDropStart:-1]
-
-    ### Take the derivative of the power list
+    #### Take the derivative of the power list
     step = time[1]-time[0] 
     dp = []
     for i in range(len(power) - 1):
@@ -267,58 +266,44 @@ def returnSplitPowers(fullPath,powerfile,expTimeMin = 80,expTimeMax = 100,addIni
     for i in range(len(dp)):
         if dp[i] >= threshold:
             timeBreak.append(time[i])
-    firstFigure = nextfigure(firstFigure,'DerivativePowerSeries' + powerfile.split('.')[0])
-    print 'length of time', len(time), 'length of power', len(power)
-    plot(time[0:len(dp)],dp)
-    ylabel('$dP/dt$ $(dBm/s)$')
-    xlabel('seconds')
-    axhline(y=threshold,color='k')
-    title(titleString + 'Derivative Powers')
-
-    badTimes = []
-    count = 0
-    while count < (len(timeBreak) - 1):
-        if (timeBreak[count+1] - timeBreak[count]) <= expTimeMin:
-            badTimes.append(timeBreak[count+1])
-            timeBreak.pop(count+1) # Drop that time value
-            count -= 1 # you must force the counter to roll back and account for throwing away a value
-        if (timeBreak[count+1] - timeBreak[count]) >= expTimeMax: # This is most likely the first glitch
-            badTimes.append(timeBreak[count])
-            timeBreak.pop(count) # Drop that time value
-            count -= 1 # you must force the counter to roll back and account for throwing away a value
-        count += 1
-
-    if addInitialPower:
-        ### This is for any experiment that was run at the attenuation that the amplifier was warmed up at. Because you wont catch any jump
-        expTime = timeBreak[1] - timeBreak[0] # The time for an experiment
-        timeBreak.insert(0,timeBreak[0] - expTime)
-
-    for val in timeBreak:
-        axvline(x=val, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-    ylim(-0.5,2)
-
-    firstFigure = nextfigure(firstFigure,'PowerSeries' + powerfile.split('.')[0])
-    expPowers = nddata(power).rename('value','time').labels(['time'],[time[0:len(power)]])
-    plot(expPowers)
-    powers = []
-    ### Average the power over the time breaks 
-    for i in range(len(timeBreak)-1):
-        meanVal = expPowers['time',lambda x: logical_and(x>timeBreak[i],x<timeBreak[i+1])].mean('time').data
-        powers.append(meanVal)
-        hlines(y=meanVal,xmin=timeBreak[i],xmax=timeBreak[i+1],color='k',linewidth = 4,alpha = 0.8)
-        text(timeBreak[i]+1,meanVal+.8,'%0.2f'%(timeBreak[i+1]-timeBreak[i]),fontsize=5)
-    for val in timeBreak:
-        axvline(x=val, ymin=0, ymax = 1.0,color='r',linewidth = 1,alpha = 0.5)
-    ylim(-45,10)
-    title(titleString + 'Power Steps')
-    ylabel('$(dBm)$')
-    xlabel('seconds')
-    return powers,firstFigure
-              #}}}
+    timeBreak.sort()
+    if absTime: # this means we have something of absTime that makes sense.
+        """ This uses the experimental time recorded in topspin to return the powers."""
+        firstFigure = nextfigure(firstFigure,'DerivativePowerSeries' + powerfile.split('.')[0])
+        print 'length of time', len(time), 'length of power', len(power)
+        plot(time[0:len(dp)],dp)
+        ylabel(r'$\mathtt{dP/dt\ (dBm/s)}$')
+        xlabel(r'$\mathtt{Time\ (s)}$')
+        axvline(x=timeBreak[-1],color='r',alpha=0.5,linewidth=2)
+        axhline(y=threshold,color='k')
+        title(r'$\mathtt{Derivative\ of\ %s}$'%titleString)
+        absTime.sort(key=lambda tup: tup[0])
+        # align to the last spike
+        offSet = absTime[-1][1] - timeBreak[-1] + bufferVal
+        powers = nddata(power).rename('value','t').labels('t',time)
+        firstFigure = nextfigure(firstFigure,'PowerSeries' + powerfile.split('.')[0])
+        plot(powers)
+        title(r'$\mathtt{%s}$'%titleString)
+        ylabel(r'$\mathtt{dB}$')
+        xlabel(r'$\mathtt{Time\ (s)}$')
+        powerList = []
+        for timeVals in absTime:
+            start = timeVals[0] - offSet + bufferVal 
+            stop = timeVals[1] - offSet - bufferVal
+            power = powers['t',lambda x:logical_and(x >= start, x <= stop)].copy().mean('t').data
+            if not isnan(power):
+                axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
+                powerList.append(float(power))
+        return array(powerList),firstFigure
+    else:
+        raise ValueError("You did not pass me the absolute expeirment times returned from returnExpTimes(). Give me those times and I'll give you the powers!")
+#}}}
 
 def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
     """ This reads the bruker meta data file audita.txt and returns the time elapsed for the given experiment.
-    
+
     Args:
     fullPath - (string) path to experiment file
     exps - (array) experiment numbers 
@@ -328,10 +313,11 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
     operatingSys - (string)... Stupid windows...
 
     Returns:
-    (array),(nddata) - array of experiment times, nddata of mean exptime and standard deviation of times
+    (array),(nddata),(list) - array of experiment times, nddata of mean exptime and standard deviation of times, and a list of the absolute experiment start and stop times 
 
     """
     expTime = []
+    absTime = []
     for exp in exps:
         try:
             if operatingSys == 'nt':
@@ -339,12 +325,21 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
             else:
                 opened = open(fullPath + '/%s/audita.txt'%exp)
             lines = opened.readlines()
+            absStart = lines[8].split(' ')[2] + ' ' + lines[8].split(' ')[3]
+            splitup = re.findall(r"[\w']+",absStart)
+            absStart = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
+            absStart = time.mktime(absStart.utctimetuple()) # this returns seconds since the epoch
             start = lines[8].split(' ')[3]
             start = start.split(':') # hours,min,second
             hour = int(start[0],10)*3600
             minute = int(start[1],10)*60
             second = int(start[2].split('.')[0],10)
             start = second+minute+hour # in seconds
+            absStop = lines[6].split('<')[1].split('>')[0].split(' ')
+            absStop = absStop[0] + ' ' + absStop[1]
+            splitup = re.findall(r"[\w']+",absStop)
+            absStop = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
+            absStop = time.mktime(absStop.utctimetuple()) # this returns seconds since the epoch
             stop = lines[6].split(' ')[4]
             stop = stop.split(':')
             hour = int(stop[0],10)*3600
@@ -352,19 +347,20 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
             second = int(stop[2].split('.')[0],10)
             stop = second+minute+hour # in seconds
             expTime.append(stop-start)
+            absTime.append((absStart,absStop))
         except:
             pass
             if dnpExp:
                 print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
-                return False,False
+                return False,False,False
             else:
-                print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n" 
-                return False,False
+                print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
+                return False,False,False
     expTime = list(expTime)
-    for count,time in enumerate(expTime):
-        if time < 0:
+    for count,timeVal in enumerate(expTime):
+        if timeVal < 0:
             expTime.pop(count) 
-    return array(expTime),nddata(array(expTime)).mean('value').set_error(std(array(expTime)))#}}}
+    return array(expTime),nddata(array(expTime)).mean('value').set_error(std(array(expTime))),absTime#}}}
 
 #}}}
 
