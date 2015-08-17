@@ -1042,6 +1042,7 @@ def integrate(file,expno,
         phchannel = [],
         returnIntData= False,
         offset_corr = 0,
+        forceGlitch=1,
         timeZeroGlitch = True,
         test_drift_limit = False):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
@@ -1087,8 +1088,11 @@ def integrate(file,expno,
         ### Pull out the initial receiver glitch and zero fill then end of the data set.
         zeroglitch = data.runcopy(abs)
         zeroglitch.sum(dimname)
-        glitch = zeroglitch.run(argmax,'t2').data
-        glitch += 5 # Just to be sure you get all of the crap
+        if forceGlitch:
+            glitch = forceGlitch
+        else:
+            glitch = zeroglitch.run(argmax,'t2').data
+            print "I remove %0.1f points in the beginning of the spectrum"%glitch
         dataList = []
         for count in range(len(data.getaxis(dimname))):
             zeroFree = data[dimname,count]
