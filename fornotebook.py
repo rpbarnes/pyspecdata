@@ -1,4 +1,5 @@
-import matplotlib; matplotlib.use('Agg')
+import matplotlib; 
+matplotlib.use('MacOSX')
 import matplotlib.pyplot as plt
 from matlablike import *
 from string import rstrip
@@ -56,6 +57,8 @@ class figlistl (figlist):
                 kwargs.update({'mlab':self.mlab})
                 mlab = True
         for j,figname in enumerate(self.figurelist):
+            #figure(j+1)
+            #savefig(figname, dpi=None, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format=None, transparent=False, bbox_inches=None, pad_inches=0.1, frameon=None)
             if verbose: print "showing figure"+lsafen(figname)
             if type(figname) is dict:
                 kwargs.update(figname)
@@ -378,46 +381,52 @@ def lplot(fname,width=0.33,figure=False,dpi=72,grid=False,alsosave=None,gensvg =
         alsosave = fname.replace('.pdf','.svg')
     if genpng == True:
         alsosave = fname.replace('.pdf','.png')
-    if grid:
-        gridandtick(gca())
-    fig = gcf()
-    ax = gca()
-    if equal_aspect:
-        ax.set_aspect('equal')
-    fig.autofmt_xdate()
-    if autopad: autopad_figure(centered = centered)
-    # replaced outer_legend with appropriate modification to the "legend" option of figlist.show_prep(), same with legend option
-    if not boundaries:
-        ax = gca()
-        for j in ax.spines.keys():
-            ax.spines[j].set_visible(False)
-        setp(ax.get_xticklabels(),visible = False)
-        setp(ax.get_yticklabels(),visible = False)
-        setp(ax.get_xticklines(),visible = False)
-        setp(ax.get_yticklines(),visible = False)
-        this_xlabel = ax.get_xlabel()
-        if len(this_xlabel) > 0:
-            ax.set_xlabel(this_xlabel + r" $\rightarrow$")
-        this_ylabel = ax.get_ylabel()
-        if len(this_ylabel) > 0:
-            ax.set_ylabel(this_ylabel + r" $\rightarrow$")
-    if mlab:
-        mlab.savefig(fname,magnification = dpi/72)
-    else:
-        try:
-            savefig(fname,dpi=dpi,facecolor = (1,1,1,0))
-        except ValueError,exc_string:
-            if exc_string.find('finite numbers') > -1:
-                raise ValueError("It gives this error because you're trying to do a bar graph with zero width")
-            else:
-                raise ValueError(exc_string)
-        if alsosave != None:
-            savefig(alsosave,dpi=dpi,facecolor = (1,1,1,0))
-    if figure:
-        print r"""
-        \begin{figure}[h]
-        \end{figure}
-        """
+    #if grid:
+    #    gridandtick(gca())
+    #fig = gcf()
+    #ax = gca()
+    #if equal_aspect:
+    #    ax.set_aspect('equal')
+    #fig.autofmt_xdate()
+    #if autopad: autopad_figure(centered = centered)
+    ## replaced outer_legend with appropriate modification to the "legend" option of figlist.show_prep(), same with legend option
+    #if not boundaries:
+    #    ax = gca()
+    #    for j in ax.spines.keys():
+    #        ax.spines[j].set_visible(False)
+    #    setp(ax.get_xticklabels(),visible = False)
+    #    setp(ax.get_yticklabels(),visible = False)
+    #    setp(ax.get_xticklines(),visible = False)
+    #    setp(ax.get_yticklines(),visible = False)
+    #    this_xlabel = ax.get_xlabel()
+    #    if len(this_xlabel) > 0:
+    #        ax.set_xlabel(this_xlabel + r" $\rightarrow$")
+    #    this_ylabel = ax.get_ylabel()
+    #    if len(this_ylabel) > 0:
+    #        ax.set_ylabel(this_ylabel + r" $\rightarrow$")
+    #if mlab:
+    #    mlab.savefig(fname,magnification = dpi/72)
+    #else:
+    #    try:
+    #        #savefig(fname,dpi=dpi,facecolor = (1,1,1,0))
+    #        savefig(fname, dpi=340, facecolor='w', edgecolor='w',
+    #            orientation='portrait', papertype=None, format=None,
+    #            transparent=False, bbox_inches=None, pad_inches=0.1,
+    #            frameon=None)
+    #    except ValueError,exc_string:
+    #        if exc_string.find('finite numbers') > -1:
+    #            raise ValueError("It gives this error because you're trying to do a bar graph with zero width")
+    #        else:
+    #            raise ValueError(exc_string)
+    #    if alsosave != None:
+    #        savefig(alsosave,dpi=dpi,facecolor = (1,1,1,0))
+    #if figure:
+    #    print r"""
+    #    \begin{figure}[h]
+    #    \end{figure}
+    #    """
+    tight_layout()
+    savefig(fname, dpi=340, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format=None, transparent=False, bbox_inches=None, pad_inches=0.1, frameon=None)
     if bytextwidth:
         if showbox:
             mpwidth = r'%0.2f\linewidth'%width

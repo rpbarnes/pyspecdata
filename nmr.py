@@ -1042,7 +1042,7 @@ def integrate(file,expno,
         phchannel = [],
         returnIntData= False,
         offset_corr = 0,
-        forceGlitch=1,
+        forceGlitch=False,
         timeZeroGlitch = True,
         test_drift_limit = False):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
