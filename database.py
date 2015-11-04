@@ -214,6 +214,7 @@ def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False,appendValue = 
             data = nddata(array(dataDict.get('value'))).rename('value',dim0).labels(dim0,dataDict.get('dim0')).set_error(dataDict.get('valueError'))
         else:
             data = nddata(array(dataDict.get('value'))).set_error(dataDict.get('valueError'))
+        data.other_info = copyDict
     else:
         data = nddata(array(dataDict.get('data'))).rename('value',str(dataDict.get('dimNames')[0])).labels(str(dataDict.get('dimNames')[0]),array(dataDict.get('dim0'))).set_error(dataDict.get('error')) # this should be expanded to handle more than one dimension.
         if appendValue:
@@ -222,6 +223,7 @@ def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False,appendValue = 
             else: # there is no stored value in the data set. Pull the zeroth value of the fitlist as this holds the necessary information. Also pull the error as the average of all the stored error.
                 data.other_info = {'value':copyDict.get('fitList')[0],'valueError':average(copyDict.get('error'))}
         else:
+            print "returning copydict"
             data.other_info = copyDict
     return data
 #}}}
