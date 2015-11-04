@@ -192,13 +192,14 @@ def stringifyDictionary(dictionary):#{{{
         outputDict.update({str(key):str(value)})
     return outputDict#}}}
 
-def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False): #{{{ dictToNdData - return an nddata from a dictionary entry given the tag for the specific data.
+def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False,appendValue = False): #{{{ dictToNdData - return an nddata from a dictionary entry given the tag for the specific data.
     """ This will return a one dimensional nddata from a dictionary entry from the ODNP workup. This also preserves the input dictionary. -- In future you should expand this to handle mutlidimensional sets.
 
     args:
-    dataTag - (string) either 'enhancement' 'kSigma' or 't1' this tells which data to pull from the dictionary
+    dataTag - (string) either 'enhancementODNP' 'kSigmaODNP' or 't1ODNP' this tells which data to pull from the dictionary
     dictionary - (dictionary) this is the dictionary pulled from mongoDB
     retValue - (boolean) True - returns stored fit value instead of series data. E.g. kSigma is saved with power series data and the fit value for kSigma, if you set retValue = True this function returns the fit value and fit error as an nddata set. False - returns series data, with dims defined by dimNames
+    appendValue - (boolean) - appends the stored database value for the given dataset. This adds the value to the other_info dictionary as value and valueError.
     dim0 - (boolean False, string True) - Only checked if retValue is True. String entered must be a key in given dictionary. Will set name of dim0 to key entered and the value of dim0 to the value of said key in given dictionary. --- Note to self this really must be a specialized thing. for now this will just return a string as dim0 and user must handle elsewhere.
 
     Returns:
@@ -215,7 +216,13 @@ def dictToNdData(dataTag,dictionary,retValue = False,dim0 = False): #{{{ dictToN
             data = nddata(array(dataDict.get('value'))).set_error(dataDict.get('valueError'))
     else:
         data = nddata(array(dataDict.get('data'))).rename('value',str(dataDict.get('dimNames')[0])).labels(str(dataDict.get('dimNames')[0]),array(dataDict.get('dim0'))).set_error(dataDict.get('error')) # this should be expanded to handle more than one dimension.
-    data.other_info = copyDict
+        if appendValue:
+            if copyDict.get('value'): # there is a stored value in the dataset.
+                data.other_info = {'value':copyDict.get('value'),'valueError':copyDict.get('valueError')}
+            else: # there is no stored value in the data set. Pull the zeroth value of the fitlist as this holds the necessary information. Also pull the error as the average of all the stored error.
+                data.other_info = {'value':copyDict.get('fitList')[0],'valueError':average(copyDict.get('error'))}
+        else:
+            data.other_info = copyDict
     return data
 #}}}
 
