@@ -3,16 +3,6 @@ This script will calculate the double integral of a derivative EPR spectrum that
 
 You should make this dump the spectrum and the double integral to the database with a searchable sample number. This way you could calculate all ODNP + EPR information by looking for you sample.
 
-Bugs:
-    ** 1) Script crashed with this file CheY_M17C_P2_202uM_14mm_10db.asc - taken care of, changed peak finding method.
-        ** a) It cannot find the peaks appropriately
-        ** b) it's too noisy and finds many peaks
-        ** c) it also suffers from finding more than one local maxima in the region.
-
-To Do:
-    ** 1) You should funtionalize this so that you're not copying code from one location to the other!
-    ** 3) Fit the ends of the absorption spec to a line and subtract the line from the spectrum.
-    ** 4) Calculate the double integrated value and check to make sure the end is flat
 """
 
 import matlablike as pys
@@ -69,11 +59,18 @@ def returnEPRExpDict(fileName,verbose=False):#{{{
         try:
             if verbose:
                 print "Debug: ",line
-            splitData = line.split(' ')
-            key = splitData.pop(0)
-            value = splitData.pop(0)
-            for data in splitData:
-                value += data
+            if '=' in line:
+                print "pulling for eq"
+                splitData = line.split('=')
+                key = splitData[0].split(' ')[0]
+                value = splitData[1]
+            else:
+                print "poop"
+                splitData = line.split(' ')
+                key = splitData.pop(0)
+                value = splitData.pop(0)
+                for data in splitData:
+                    value += data
             expDict.update({key:value})
         except:
             pass
@@ -88,18 +85,24 @@ def returnEPRExpDictDSC(fileName):#{{{
     expDict = {}
     for count,line in enumerate(lines):
         cut = line.split('\n')[0]
-        try:
-            key,value = cut.split('\t')
+        if 'end defs' in cut:
+            break
+        if '\t' in cut:
+            try:
+                key,value = cut.split('\t')
+                expDict.update({key.strip():value.strip()})
+            except:
+                pass
+        elif '=' in cut:
+            cut =  cut.split('=')
+            key = cut[0].strip()
+            value = cut[1].split(';')[0].strip()
             expDict.update({key:value})
-        except:
-            pass
-        try:
+        else:
             splits = cut.split(' ')
-            key = splits[0]
-            value = splits[-2]+' '+splits[-1]
+            key = splits.pop(0).strip()
+            value = splits
             expDict.update({key:value})
-        except:
-            pass
     return expDict#}}}
 
 def returnEPRSpec(fileName,doNormalize = True): #{{{
@@ -233,6 +236,61 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     valley.sort('field')
     return peak,valley
 #}}}
+
+def returnt2TwoDim(path,name,runsToCut=False,firstFigure=[],showPlots=True):
+    fileName = path+name
+    expDict = returnEPRExpDictDSC(fileName)
+    specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+    start = float(expDict.get('d1'))*1e-9
+    step = float(expDict.get('d30'))*1e-9
+    xLen = int(expDict.get('XPTS'))
+    yLen = int(expDict.get('YPTS'))
+    time = r_[start:start + step * xLen: xLen * 1j]
+
+    # dump everything into an nddata
+    dataShape = pys.ndshape([xLen,yLen],['time','run'])
+    data2d = dataShape.alloc(dtype='complex')
+    data2d.labels(['time','run'],[time,r_[0:yLen]])
+    dataList = []
+    for count in arange(0,len(specData),2):
+        dataList.append(specData[count]+1j*specData[count+1])
+    for dim in range(yLen):
+        data = array(dataList[dim * xLen: (dim + 1) * xLen])
+        data2d['run',dim] = data
+        
+    if showPlots:
+        firstFigure = pys.nextfigure(firstFigure,'AccumEchoDecayCurvesMag' + name)
+        pys.image(data2d.runcopy(abs))
+        pys.title('Magnitude Relaxation')
+        R,T = pys.meshgrid(data2d.getaxis('run'),data2d.getaxis('time'))
+        firstFigure = pys.nextfigure(firstFigure,'AccumEchoDecayCurves' + name)
+        CS = pys.contour(T,data2d.data,R,len(data2d.getaxis('run')),alpha = 0.2)
+        pys.xlabel('time')
+        pys.tick_params(
+            axis='x',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            bottom='on',      # ticks along the bottom edge are off
+            top='off',         # ticks along the top edge are off
+            labelbottom='on') # labels along the bottom edge are off
+        pys.ylabel('$Magnetization$')
+        pys.title('Total Scans')
+        pys.colorbar()
+        if runsToCut:
+            data2d = data2d['run',lambda x: x > runsToCut]
+            firstFigure = pys.nextfigure(firstFigure,'AccumEchoDecayCurvesCut' + name)
+            R,T = pys.meshgrid(data2d.getaxis('run'),data2d.getaxis('time'))
+            CS = pys.contour(T,data2d.data,R,len(data2d.getaxis('run')),alpha = 0.2)
+            pys.xlabel('time')
+            pys.tick_params(
+                axis='x',          # changes apply to the x-axis
+                which='both',      # both major and minor ticks are affected
+                bottom='on',      # ticks along the bottom edge are off
+                top='off',         # ticks along the top edge are off
+                labelbottom='on') # labels along the bottom edge are off
+            pys.ylabel('$Magnetization$')
+            pys.colorbar()
+            pys.title('Run Selection')
+    return data2d
 #}}}
 
 ### Import the files - for now this is hard coded and this only works with ASCII files, you need to change this so you can use the par files as well.
