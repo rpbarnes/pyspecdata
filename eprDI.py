@@ -237,26 +237,31 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     return peak,valley
 #}}}
 
-def returnt2TwoDim(path,name,runsToCut=False,firstFigure=[],showPlots=True):
+def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],showPlots=True):
     fileName = path+name
     expDict = returnEPRExpDictDSC(fileName)
-    specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
     start = float(expDict.get('d1'))*1e-9
     step = float(expDict.get('d30'))*1e-9
     xLen = int(expDict.get('XPTS'))
     yLen = int(expDict.get('YPTS'))
     time = r_[start:start + step * xLen: xLen * 1j]
 
-    # dump everything into an nddata
+    # grab data and dump everything into an nddata
     dataShape = pys.ndshape([xLen,yLen],['time','run'])
     data2d = dataShape.alloc(dtype='complex')
     data2d.labels(['time','run'],[time,r_[0:yLen]])
-    dataList = []
-    for count in arange(0,len(specData),2):
-        dataList.append(specData[count]+1j*specData[count+1])
-    for dim in range(yLen):
-        data = array(dataList[dim * xLen: (dim + 1) * xLen])
-        data2d['run',dim] = data
+    if extension == '.DTA':
+        specData = fromfile(fileName+extension,'>d') # or if it is a DTA file read that instead
+        dataList = []
+        for count in arange(0,len(specData),2):
+            dataList.append(specData[count]+1j*specData[count+1])
+        for dim in range(yLen):
+            data = array(dataList[dim * xLen: (dim + 1) * xLen])
+            data2d['run',dim] = data
+    elif extension == '.npy':
+        specData = load(fileName+extension)
+        for dim in range(yLen):
+            data2d['run',dim] = specData[dim]
         
     if showPlots:
         firstFigure = pys.nextfigure(firstFigure,'AccumEchoDecayCurvesMag' + name)
