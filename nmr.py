@@ -263,21 +263,30 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
     dp = abs(array(dp))
     ### Go through and threshold the powers
     timeBreak = []
+    spike = []
     for i in range(len(dp)):
         if dp[i] >= threshold:
             timeBreak.append(time[i])
+            spike.append(dp[i])
+    spike = nddata(array(spike)).rename('value','time').labels('time',array(timeBreak))        
     timeBreak.sort()
     if absTime: # this means we have something of absTime that makes sense.
         """ This uses the experimental time recorded in topspin to return the powers."""
         firstFigure = nextfigure(firstFigure,'DerivativePowerSeries' + powerfile.split('.')[0])
         print 'length of time', len(time), 'length of power', len(power)
+        # Plot #{{{
         plot(time[0:len(dp)],dp)
         ylabel(r'$\mathtt{dP/dt\ (dBm/s)}$')
         xlabel(r'$\mathtt{Time\ (s)}$')
         axvline(x=timeBreak[-1],color='r',alpha=0.5,linewidth=2)
         axhline(y=threshold,color='k')
-        title(r'$\mathtt{Derivative\ of\ %s}$'%titleString)
+        title(r'$\mathtt{Derivative\ of\ %s}$'%titleString)#}}}
+        # check to make sure that the first experiment isn't recorded. If it caught Exp 5 throw it out. See if the time spacing between experiments is greater than the experiment.
         absTime.sort(key=lambda tup: tup[0])
+        if abs(absTime[0][1] - absTime[1][0]) > abs(absTime[0][0] - absTime[0][1]):
+            print "Throwing out value"
+            absTime.pop(0)
+
         # align to the last spike
         offSet = absTime[-1][1] - timeBreak[-1] + bufferVal
         powers = nddata(power).rename('value','t').labels('t',time)
@@ -290,12 +299,17 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
         for timeVals in absTime:
             start = timeVals[0] - offSet + bufferVal 
             stop = timeVals[1] - offSet - bufferVal
-            power = powers['t',lambda x:logical_and(x >= start, x <= stop)].copy().mean('t').data
+            expTimeLength = abs(stop - start)
+            initialPower = powers['t',lambda x: x == start]
+            cutPower = powers['t',lambda x:logical_and(x >= start, x <= stop)].copy()
+            power = cutPower.copy().mean('t').data
             if not isnan(power):
-                axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
-                powerList.append(float(power))
+                dataTimeLength = abs(cutPower.getaxis('t')[-1] - cutPower.getaxis('t')[0])
+                if dataTimeLength >= expTimeLength - 0.1*expTimeLength:
+                    axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                    axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                    hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
+                    powerList.append(float(power))
         return array(powerList),firstFigure
     else:
         raise ValueError("You did not pass me the absolute expeirment times returned from returnExpTimes(). Give me those times and I'll give you the powers!")
