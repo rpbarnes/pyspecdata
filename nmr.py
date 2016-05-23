@@ -19,7 +19,7 @@ def dbm_to_power(dbm,cavity_setup = 'newcnsi'):
     if cavity_setup == 'newcnsi':
         attenuation = 35.16 # plus or minus a full dB --> this was measured
     if cavity_setup == 'EMX-CNSI': # Identifies the CNSI spectrometer
-        attenuation = 35.16
+        attenuation = 22.0
     if cavity_setup == 'EMX-HL': # Identifies the EMX-HL spectrometer
         attenuation = 30.0 # I haven't measured this.
     elif cavity_setup == 'te102':
