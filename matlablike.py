@@ -3108,6 +3108,28 @@ class nddata (object):
                     argout.set_units(thisdim,arg.get_units(thisdim))
         return selfout,argout
     #}}}
+    def removeDuplicates(self,thisAxis):
+        """ Remove the duplicates along a given dimension. Averages the data values corresponding to the duplicates, sets error to the std of the duplicate entries.
+        Limitations:
+        Data must be numeric, cannot be str
+        Only handles 1-d data sets.
+
+        thisaxis - str - axis to remove duplicates along 
+
+        returns new nddata must call as newSet = oldSet.removeDuplicates('axisName')
+
+        """
+        indepAxis = list(set(self.getaxis(thisAxis)))
+        dataDim = []
+        errorDim = []
+        for count,axisVal in enumerate(indepAxis):
+            dataVals = self[thisAxis,lambda x: x==axisVal].data
+            dataDim.append(average(dataVals))
+            errorDim.append(std(dataVals))
+        selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis)).set_error(array(errorDim)) 
+        return selfout
+
+
     #{{{ integrate, differentiate, and sum
     def integrate(self,thisaxis,backwards = False):
         if backwards is True:

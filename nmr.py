@@ -362,13 +362,14 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
             stop = second+minute+hour # in seconds
             expTime.append(stop-start)
             absTime.append((absStart,absStop))
-        except:
+        except exception as errtxt:
             pass
             if dnpExp:
                 print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
                 return False,False,False
             else:
                 print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
+                print errtxt
                 return False,False,False
     expTime = list(expTime)
     for count,timeVal in enumerate(expTime):

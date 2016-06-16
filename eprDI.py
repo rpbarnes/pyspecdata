@@ -106,6 +106,32 @@ def returnEPRExpDictDSC(fileName):#{{{
             expDict.update({key:value})
     return expDict#}}}
 
+def returnFSESpec(fileName):#{{{
+    """
+    Open the Field Swept Echo spectrum from Xepr.
+
+    You're writing this because bruker's file format changes too much
+
+    """
+    expDict = returnEPRExpDictDSC(fileName)
+    specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+    real = []
+    imaginary = []
+    for i in range(0,len(specData),2):
+        real.append(specData[i])
+        imaginary.append(specData[i+1])
+
+    data = array(real)+1j*array(imaginary)
+    centerField = float(expDict.get('CenterField')[-2])
+    sweepWidth = float(expDict.get('SweepWidth')[-2])
+    numScans = int(expDict.get('n'))
+    numAcc = int(expDict.get('h'))
+    spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
+    spec /= numScans
+    spec /= numAcc
+    return spec
+#}}}
+
 def returnEPRSpec(fileName,doNormalize = True): #{{{
     """ 
     *** This code is crappy
@@ -145,7 +171,7 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
                 normalized = 'bad'
     except:
         expDict = returnEPRExpDictDSC(fileName)
-        specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+        specData = fromfile(fileName+'.DTA','>c') # or if it is a DTA file read that instead
         centerSet = float(expDict.get('CenterField').split(' ')[0])
         sweepWidth = float(expDict.get('SweepWidth').split(' ')[0])
         numScans = float(expDict.get('NbScansAcc')) # Yea bruker just changes things...
