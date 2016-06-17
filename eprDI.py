@@ -106,9 +106,9 @@ def returnEPRExpDictDSC(fileName):#{{{
             expDict.update({key:value})
     return expDict#}}}
 
-def returnFSESpec(fileName):#{{{
+def returnFSESpec(fileName,expType = 'FSE'):#{{{
     """
-    Open the Field Swept Echo spectrum from Xepr.
+    Open the Field Swept Echo spectrum from Xepr. This actually opens any single dimension pulse experiment performed on the Elexsys and returns an nddata.
 
     You're writing this because bruker's file format changes too much
 
@@ -122,11 +122,25 @@ def returnFSESpec(fileName):#{{{
         imaginary.append(specData[i+1])
 
     data = array(real)+1j*array(imaginary)
-    centerField = float(expDict.get('CenterField')[-2])
-    sweepWidth = float(expDict.get('SweepWidth')[-2])
     numScans = int(expDict.get('n'))
     numAcc = int(expDict.get('h'))
-    spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
+    if expType == 'FSE':
+        centerField = float(expDict.get('CenterField')[-2])
+        sweepWidth = float(expDict.get('SweepWidth')[-2])
+        spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
+    elif expType == '2pESEEM':
+        timeStart = float(expDict.get('XMIN'))
+        timeStop = float(expDict.get('XWID'))
+        unit = str(expDict.get('XUNI'))
+        if unit == "'ns'":
+            multiplier = 1e-9
+        elif unit == "'us'":
+            multiplier = 1e-6
+        else:
+            multiplier = 1
+        spec = pys.nddata(data).rename('value','field').labels('field',linspace(timeStart,timeStop,len(data)))
+        spec.other_info.update({'timeUnit':unit})
+
     spec /= numScans
     spec /= numAcc
     return spec
