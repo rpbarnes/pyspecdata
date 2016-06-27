@@ -9,6 +9,7 @@ import matlablike as pys
 from numpy import *
 import csv
 import fornotebook as fnb
+import os
 
 pys.close('all')
 fl = fnb.figlist()
@@ -131,7 +132,11 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
         specData = fromfile(fileName+'.spc','<f') # read the spc
         centerSet = float(expDict.get('HCF'))
         sweepWidth = float(expDict.get('HSW'))
-        numScans = float(expDict.get('JNS')) # I'm not sure if this is right
+        numScans = expDict.get('JNS') # I'm not sure if this is right
+        if numScans:
+            numScans = float(numScans)
+        else:
+            numScans = 1
         rg = float(expDict.get('RRG'))
         modAmp = float(expDict.get('RMA'))
         if doNormalize:
