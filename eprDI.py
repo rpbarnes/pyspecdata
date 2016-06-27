@@ -106,6 +106,46 @@ def returnEPRExpDictDSC(fileName):#{{{
             expDict.update({key:value})
     return expDict#}}}
 
+def returnFSESpec(fileName,expType = 'FSE'):#{{{
+    """
+    Open the Field Swept Echo spectrum from Xepr. This actually opens any single dimension pulse experiment performed on the Elexsys and returns an nddata.
+
+    You're writing this because bruker's file format changes too much
+
+    """
+    expDict = returnEPRExpDictDSC(fileName)
+    specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+    real = []
+    imaginary = []
+    for i in range(0,len(specData),2):
+        real.append(specData[i])
+        imaginary.append(specData[i+1])
+
+    data = array(real)+1j*array(imaginary)
+    numScans = int(expDict.get('n'))
+    numAcc = int(expDict.get('h'))
+    if expType == 'FSE':
+        centerField = float(expDict.get('CenterField')[-2])
+        sweepWidth = float(expDict.get('SweepWidth')[-2])
+        spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
+    elif expType == '2pESEEM':
+        timeStart = float(expDict.get('XMIN'))
+        timeStop = float(expDict.get('XWID'))
+        unit = str(expDict.get('XUNI'))
+        if unit == "'ns'":
+            multiplier = 1e-9
+        elif unit == "'us'":
+            multiplier = 1e-6
+        else:
+            multiplier = 1
+        spec = pys.nddata(data).rename('value','field').labels('field',linspace(timeStart,timeStop,len(data)))
+        spec.other_info.update({'timeUnit':unit})
+
+    spec /= numScans
+    spec /= numAcc
+    return spec
+#}}}
+
 def returnEPRSpec(fileName,doNormalize = True): #{{{
     """ 
     *** This code is crappy
@@ -132,32 +172,37 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
         specData = fromfile(fileName+'.spc','<f') # read the spc
         centerSet = float(expDict.get('HCF'))
         sweepWidth = float(expDict.get('HSW'))
-        numScans = expDict.get('JNS') # I'm not sure if this is right
-        if numScans:
-            numScans = float(numScans)
-        else:
-            numScans = 1
-        rg = float(expDict.get('RRG'))
-        modAmp = float(expDict.get('RMA'))
         if doNormalize:
-            specData /= rg # normalize by receiver gain
+            numScans = expDict.get('JNS') # I'm not sure if this is right
+            if numScans:
+                numScans = float(numScans)
+            else:
+                numScans = 1
             specData /= numScans # normalize by number of scans
-            specData /= modAmp # normalize by modulation amplitude
+            if expDict.get('RRG'):
+                rg = float(expDict.get('RRG'))
+                modAmp = float(expDict.get('RMA'))
+                specData /= modAmp # normalize by modulation amplitude
+                specData /= rg # normalize by receiver gain
+                normalized = 'good'
+            else:
+                normalized = 'bad'
     except:
         expDict = returnEPRExpDictDSC(fileName)
-        specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+        specData = fromfile(fileName+'.DTA','>c') # or if it is a DTA file read that instead
         centerSet = float(expDict.get('CenterField').split(' ')[0])
         sweepWidth = float(expDict.get('SweepWidth').split(' ')[0])
         numScans = float(expDict.get('NbScansAcc')) # Yea bruker just changes things...
         rg = float(expDict.get('RCAG'))
         if doNormalize:
             specData /= rg
+        normalized = 'good'
     # calculate the field values and normalize by the number of scans and the receiver gain and return an nddata
     fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:len(specData)*1j]
     # normalize the data so there is coherence between different scans.
     spec = pys.nddata(specData).rename('value','field').labels('field',fieldVals)
     spec.other_info = expDict
-    return spec #}}}
+    return spec,normalized #}}}
 
 def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     """
@@ -244,18 +289,22 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
 
 def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],showPlots=True):
     fileName = path+name
-    expDict = returnEPRExpDictDSC(fileName)
-    start = float(expDict.get('d1'))*1e-9
-    step = float(expDict.get('d30'))*1e-9
-    xLen = int(expDict.get('XPTS'))
-    yLen = int(expDict.get('YPTS'))
-    time = r_[start:start + step * xLen: xLen * 1j]
+    # check for the time file
+    if os.path.isfile(fileName+'Time.npy'):
+        time = load(fileName+'Time.npy')*1e-9
+    else: # pull data from the DSC file
+        expDict = returnEPRExpDictDSC(fileName)
+        start = float(expDict.get('d1'))*1e-9
+        step = float(expDict.get('d30'))*1e-9
+        xLen = int(expDict.get('XPTS'))
+        yLen = int(expDict.get('YPTS'))
+        time = r_[start:start + step * xLen: xLen * 1j]
 
-    # grab data and dump everything into an nddata
-    dataShape = pys.ndshape([xLen,yLen],['time','run'])
-    data2d = dataShape.alloc(dtype='complex')
-    data2d.labels(['time','run'],[time,r_[0:yLen]])
     if extension == '.DTA':
+        # grab data and dump everything into an nddata
+        dataShape = pys.ndshape([xLen,yLen],['time','run'])
+        data2d = dataShape.alloc(dtype='complex')
+        data2d.labels(['time','run'],[time,r_[0:yLen]])
         specData = fromfile(fileName+extension,'>d') # or if it is a DTA file read that instead
         dataList = []
         for count in arange(0,len(specData),2):
@@ -265,6 +314,10 @@ def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],sho
             data2d['run',dim] = data
     elif extension == '.npy':
         specData = load(fileName+extension)
+        yLen,xLen=shape(specData)
+        dataShape = pys.ndshape([xLen,yLen],['time','run'])
+        data2d = dataShape.alloc(dtype='complex')
+        data2d.labels(['time','run'],[time,r_[0:yLen]])
         for dim in range(yLen):
             data2d['run',dim] = specData[dim]
         
@@ -326,7 +379,7 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,EPRCalFile=False,firstFig
     firstFigure.append({'print_string':r'\subparagraph{EPR Spectra %s}'%eprName + '\n\n'})
     eprFileName = eprName.split('\\')[-1]
     # Pull the specs, Find peaks, valleys, and calculate things with the EPR spectrum.#{{{
-    spec = returnEPRSpec(eprName)
+    spec,normalized = returnEPRSpec(eprName)
     peak,valley = findPeaks(spec,3)
     lineWidths = valley.getaxis('field') - peak.getaxis('field') 
     spectralWidth = peak.getaxis('field').max() - peak.getaxis('field').min() 
@@ -336,6 +389,8 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,EPRCalFile=False,firstFig
     print "\nI calculate the spectral width to be: ",spectralWidth," G \n"
     print "I calculate the center field to be: ",centerField," G \n"
     print "I set spectral bounds of: ", specStart," and ", specStop," G \n"#}}}
+    if normalized == 'bad':
+        print "The spectra is not normalized by the receiver gain"
 
     # Baseline correct the spectrum #{{{
     baseline1 = spec['field',lambda x: x < specStart].copy()
@@ -418,25 +473,26 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,EPRCalFile=False,firstFig
     #}}}
     
     # If the calibration file is present use that to calculate spin concentration#{{{
-    if EPRCalFile:
-        calib = calcSpinConc(EPRCalFile)
-        ### Fit the series and calculate concentration
-        c,fit = calib.polyfit('concentration')
-        spinConc = (diValue - c[0])/c[1]
-        # Plotting 
-        firstFigure = pys.nextfigure(firstFigure,'SpinConcentration')
-        pys.plot(calib,'r.',markersize = 15)
-        pys.plot(fit,'g')
-        pys.plot(spinConc,diValue,'b.',markersize=20)
-        pys.title('Estimated Spin Concentration')
-        pys.xlabel('Spin Concentration')
-        pys.ylabel('Double Integral')
-        ax = pys.gca()
-        ax.text(spinConc,diValue - (0.2*diValue),'%0.2f uM'%spinConc,color='blue',fontsize=15)
-        pys.giveSpace()
+    if normalized == 'good':
+        if EPRCalFile:
+            calib = calcSpinConc(EPRCalFile)
+            ### Fit the series and calculate concentration
+            c,fit = calib.polyfit('concentration')
+            spinConc = (diValue - c[0])/c[1]
+            # Plotting 
+            firstFigure = pys.nextfigure(firstFigure,'SpinConcentration')
+            pys.plot(calib,'r.',markersize = 15)
+            pys.plot(fit,'g')
+            pys.plot(spinConc,diValue,'b.',markersize=20)
+            pys.title('Estimated Spin Concentration')
+            pys.xlabel('Spin Concentration')
+            pys.ylabel('Double Integral')
+            ax = pys.gca()
+            ax.text(spinConc,diValue - (0.2*diValue),'%0.2f uM'%spinConc,color='blue',fontsize=15)
+            pys.giveSpace()
     else:
         spinConc = None
-        #}}}
+            #}}}
     return spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc
     #}}}
 
