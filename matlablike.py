@@ -3124,9 +3124,18 @@ class nddata (object):
         errorDim = []
         for count,axisVal in enumerate(indepAxis):
             dataVals = self[thisAxis,lambda x: x==axisVal].data
-            dataDim.append(average(dataVals))
-            errorDim.append(std(dataVals))
-        selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis)).set_error(array(errorDim)) 
+            if len(dataVals) > 1:
+                dataDim.append(average(dataVals))
+                if self.get_error().any():
+                    errorDim.append(std(dataVals))
+            else:
+                dataDim.append(float(dataVals))
+                if self.get_error().any():
+                    errorDim.append(float(self[thisAxis,lambda x: x==axisVal].get_error()))
+        if self.get_error().any():
+            selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis)).set_error(array(errorDim)) 
+        else:
+            selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis))
         return selfout
 
 

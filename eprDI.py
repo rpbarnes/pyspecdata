@@ -106,44 +106,62 @@ def returnEPRExpDictDSC(fileName):#{{{
             expDict.update({key:value})
     return expDict#}}}
 
-def returnFSESpec(fileName,expType = 'FSE'):#{{{
+def returnPulseEPRSpec(fileName,expType = 'FSE',spect='xepr'):#{{{
     """
-    Open the Field Swept Echo spectrum from Xepr. This actually opens any single dimension pulse experiment performed on the Elexsys and returns an nddata.
+    This actually opens any single dimension pulse experiment performed on the Elexsys and returns an nddata.
 
-    You're writing this because bruker's file format changes too much
+    You're writing this because bruker's file format changes too much. You also included support for specman 1-D filetype
+
+    spect - string - the spectrometer name i.e. 'xepr' or 'specMan'
 
     """
-    expDict = returnEPRExpDictDSC(fileName)
-    specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
-    real = []
-    imaginary = []
-    for i in range(0,len(specData),2):
-        real.append(specData[i])
-        imaginary.append(specData[i+1])
+    if spect == 'xepr':
+        expDict = returnEPRExpDictDSC(fileName)
+        specData = fromfile(fileName+'.DTA','>d') # or if it is a DTA file read that instead
+        real = []
+        imaginary = []
+        for i in range(0,len(specData),2):
+            real.append(specData[i])
+            imaginary.append(specData[i+1])
 
-    data = array(real)+1j*array(imaginary)
-    numScans = int(expDict.get('n'))
-    numAcc = int(expDict.get('h'))
-    if expType == 'FSE':
-        centerField = float(expDict.get('CenterField')[-2])
-        sweepWidth = float(expDict.get('SweepWidth')[-2])
-        spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
-    elif expType == '2pESEEM':
-        timeStart = float(expDict.get('XMIN'))
-        timeStop = float(expDict.get('XWID'))
-        unit = str(expDict.get('XUNI'))
-        if unit == "'ns'":
-            multiplier = 1e-9
-        elif unit == "'us'":
-            multiplier = 1e-6
-        else:
-            multiplier = 1
-        spec = pys.nddata(data).rename('value','field').labels('field',linspace(timeStart,timeStop,len(data)))
-        spec.other_info.update({'timeUnit':unit})
+        data = array(real)+1j*array(imaginary)
+        numScans = int(expDict.get('n'))
+        numAcc = int(expDict.get('h'))
+        if expType == 'FSE':
+            centerField = float(expDict.get('CenterField')[-2])
+            sweepWidth = float(expDict.get('SweepWidth')[-2])
+            spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
+        elif expType == '2pESEEM':
+            timeStart = float(expDict.get('XMIN'))
+            timeStop = float(expDict.get('XWID'))
+            unit = str(expDict.get('XUNI'))
+            if unit == "'ns'":
+                multiplier = 1e-9
+            elif unit == "'us'":
+                multiplier = 1e-6
+            else:
+                multiplier = 1
+            spec = pys.nddata(data).rename('value','field').labels('field',linspace(timeStart,timeStop,len(data)))
+            spec.other_info.update({'timeUnit':unit})
 
-    spec /= numScans
-    spec /= numAcc
-    return spec
+        spec /= numScans
+        spec /= numAcc
+        return spec
+    elif spect == 'specMan':
+        openFile = open(os.path.abspath(fileName),'r+')
+        lines = openFile.readlines()
+        lines.pop(0)
+        time = []
+        real = []
+        imag = []
+        for line in lines:
+            line = filter(None,line.split('\n')[0].split(' '))
+            time.append(float(line[0]))
+            real.append(float(line[1]))
+            imag.append(float(line[2]))
+        spec = pys.nddata(array(real)+1j*array(imag)).rename('value','time').labels('time',array(time))
+        return spec
+
 #}}}
 
 def returnEPRSpec(fileName,doNormalize = True): #{{{
