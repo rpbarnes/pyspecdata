@@ -362,7 +362,7 @@ eprName = 'M17C_8MUrea_10-9mm'
 eprName = eprPath + eprName
 
 ### This should be a function.
-def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,EPRCalFile=False,firstFigure=[]): #{{{ EPR Workup stuff
+def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=False,firstFigure=[]): #{{{ EPR Workup stuff
     """
     Perform the epr baseline correction and double integration.
 
@@ -380,7 +380,7 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,EPRCalFile=False,firstFig
     eprFileName = eprName.split('\\')[-1]
     # Pull the specs, Find peaks, valleys, and calculate things with the EPR spectrum.#{{{
     spec,normalized = returnEPRSpec(eprName)
-    peak,valley = findPeaks(spec,3)
+    peak,valley = findPeaks(spec,numPeaks)
     lineWidths = valley.getaxis('field') - peak.getaxis('field') 
     spectralWidth = peak.getaxis('field').max() - peak.getaxis('field').min() 
     centerField = peak.getaxis('field')[1] + lineWidths[1]/2.# assuming the center point comes out in the center. The way the code is built this should be robust
