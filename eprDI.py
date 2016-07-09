@@ -43,7 +43,7 @@ def calcSpinConc(calibrationFile):#{{{
     calib = pys.nddata(pys.array(diL)).rename('value','concentration').labels('concentration',pys.array(concL))
     return calib#}}}
 
-def returnEPRExpDict(fileName,verbose=False):#{{{
+def returnEPRExpDict(fileName,extension = '.par',verbose=False):#{{{
     """
     Return all of the experiment parameters stored in the '.par' file output by the Bruker
 
@@ -53,10 +53,12 @@ def returnEPRExpDict(fileName,verbose=False):#{{{
     Returns:
     expDict - dictionary - Keys are keys from bruker par files, values are everything else matched to the corresponding key.
     """
-    openFile = open(fileName + '.par','r') # read the par
+    openFile = open(fileName + extension,'r') # read the par
     lines = openFile.readlines()
     expDict = {}
-    for line in lines[0].split('\r'):
+    if extension == '.par':
+        lines = lines[0].split('\r')
+    for line in lines:
         try:
             if verbose:
                 print "Debug: ",line
@@ -106,7 +108,25 @@ def returnEPRExpDictDSC(fileName):#{{{
             expDict.update({key:value})
     return expDict#}}}
 
-def returnPulseEPRSpec(fileName,expType = 'FSE',spect='xepr'):#{{{
+def returnFTEseemTrace(fileName):#{{{
+    """
+    Opens the FT ESEEM trace that is saved in the PEPP Matlab processing program.
+
+    returns an nddata with frequency dimension in MHz
+    """
+    openFile = open(fileName,'r+')
+    lines = openFile.readlines()
+    freq = []
+    signal = []
+    for line in lines:
+        line = filter(None,line.split('\n')[0].split(' '))
+        freq.append(float(line[0]))
+        signal.append(float(line[1]))
+    signal = pys.nddata(array(signal)).rename('value','MHz').labels('MHz',array(freq))
+    signal = signal['MHz',lambda x: x >= 0.0]
+    return signal#}}}
+
+def returnPulseEPRSpec(fileName,expType = 'fieldDomain',spect='xepr'):#{{{
     """
     This actually opens any single dimension pulse experiment performed on the Elexsys and returns an nddata.
 
@@ -127,11 +147,11 @@ def returnPulseEPRSpec(fileName,expType = 'FSE',spect='xepr'):#{{{
         data = array(real)+1j*array(imaginary)
         numScans = int(expDict.get('n'))
         numAcc = int(expDict.get('h'))
-        if expType == 'FSE':
+        if expType == 'fieldDomain':
             centerField = float(expDict.get('CenterField')[-2])
             sweepWidth = float(expDict.get('SweepWidth')[-2])
             spec = pys.nddata(data).rename('value','field').labels('field',linspace(centerField-sweepWidth/2,centerField+sweepWidth/2,len(data)))
-        elif expType == '2pESEEM':
+        elif expType == 'timeDomain':
             timeStart = float(expDict.get('XMIN'))
             timeStop = float(expDict.get('XWID'))
             unit = str(expDict.get('XUNI'))
@@ -141,7 +161,7 @@ def returnPulseEPRSpec(fileName,expType = 'FSE',spect='xepr'):#{{{
                 multiplier = 1e-6
             else:
                 multiplier = 1
-            spec = pys.nddata(data).rename('value','field').labels('field',linspace(timeStart,timeStop,len(data)))
+            spec = pys.nddata(data).rename('value','time').labels('time',linspace(timeStart,timeStop,len(data)))
             spec.other_info.update({'timeUnit':unit})
 
         spec /= numScans
