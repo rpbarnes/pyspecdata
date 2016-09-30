@@ -284,6 +284,7 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
         # check to make sure that the first experiment isn't recorded. If it caught Exp 5 throw it out. See if the time spacing between experiments is greater than the experiment.
         absTime.sort(key=lambda tup: tup[0])
         if abs(absTime[0][1] - absTime[1][0]) > abs(absTime[0][0] - absTime[0][1]):
+            """ I'm not sure what this is checking for... """
             print "Throwing out value"
             absTime.pop(0)
 
@@ -305,11 +306,11 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
             power = cutPower.copy().mean('t').data
             if not isnan(power):
                 dataTimeLength = abs(cutPower.getaxis('t')[-1] - cutPower.getaxis('t')[0])
-                if dataTimeLength >= expTimeLength - 0.1*expTimeLength:
-                    axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                    axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                    hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
-                    powerList.append(float(power))
+                #if dataTimeLength >= expTimeLength - 0.1*expTimeLength:
+                axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
+                powerList.append(float(power))
         return array(powerList),firstFigure
     else:
         raise ValueError("You did not pass me the absolute expeirment times returned from returnExpTimes(). Give me those times and I'll give you the powers!")
@@ -364,13 +365,13 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
             absTime.append((absStart,absStop))
         except exception as errtxt:
             pass
-            if dnpExp:
-                print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
-                return False,False,False
-            else:
-                print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
-                print errtxt
-                return False,False,False
+            #if dnpExp:
+            #    print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
+            #    return False,False,False
+            #else:
+            #    print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
+            #    print errtxt
+            #    return False,False,False
     expTime = list(expTime)
     for count,timeVal in enumerate(expTime):
         if timeVal < 0:
