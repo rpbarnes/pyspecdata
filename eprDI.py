@@ -401,7 +401,11 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
     peak,valley = findPeaks(spec,numPeaks)
     lineWidths = valley.getaxis('field') - peak.getaxis('field') 
     spectralWidth = peak.getaxis('field').max() - peak.getaxis('field').min() 
-    centerField = peak.getaxis('field')[1] + lineWidths[1]/2.# assuming the center point comes out in the center. The way the code is built this should be robust
+    # determine the center field
+    if numPeaks == 2:
+        centerField = (peak.getaxis('field')[0] + lineWidths[0]/2. + peak.getaxis('field')[1] + lineWidths[1]/2.)/2.
+    elif numPeaks == 3:
+        centerField = peak.getaxis('field')[1] + lineWidths[1]/2.
     specStart = centerField - spectralWidthMultiplier*spectralWidth
     specStop = centerField + spectralWidthMultiplier*spectralWidth
     print "\nI calculate the spectral width to be: ",spectralWidth," G \n"
