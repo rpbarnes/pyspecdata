@@ -3126,13 +3126,12 @@ class nddata (object):
             dataVals = self[thisAxis,lambda x: x==axisVal].data
             if len(dataVals) > 1:
                 dataDim.append(average(dataVals))
-                if self.get_error().any():
-                    errorDim.append(std(dataVals))
+                errorDim.append(std(dataVals))
             else:
                 dataDim.append(float(dataVals))
-                if self.get_error().any():
+                if self.get_error() is not None:
                     errorDim.append(float(self[thisAxis,lambda x: x==axisVal].get_error()))
-        if self.get_error().any():
+        if len(errorDim) > 1:
             selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis)).set_error(array(errorDim)) 
         else:
             selfout = nddata(array(dataDim)).rename('value',thisAxis).labels(thisAxis,array(indepAxis))

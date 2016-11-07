@@ -284,6 +284,7 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
         # check to make sure that the first experiment isn't recorded. If it caught Exp 5 throw it out. See if the time spacing between experiments is greater than the experiment.
         absTime.sort(key=lambda tup: tup[0])
         if abs(absTime[0][1] - absTime[1][0]) > abs(absTime[0][0] - absTime[0][1]):
+            """ I'm not sure what this is checking for... """
             print "Throwing out value"
             absTime.pop(0)
 
@@ -305,11 +306,11 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
             power = cutPower.copy().mean('t').data
             if not isnan(power):
                 dataTimeLength = abs(cutPower.getaxis('t')[-1] - cutPower.getaxis('t')[0])
-                if dataTimeLength >= expTimeLength - 0.1*expTimeLength:
-                    axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                    axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
-                    hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
-                    powerList.append(float(power))
+                #if dataTimeLength >= expTimeLength - 0.1*expTimeLength:
+                axvline(x=start, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                axvline(x=stop, ymin=0, ymax = 1.0,color='r',alpha = 0.5)
+                hlines(y=power,xmin=start,xmax=stop,color='k',linewidth = 4,alpha = 0.8)
+                powerList.append(float(power))
         return array(powerList),firstFigure
     else:
         raise ValueError("You did not pass me the absolute expeirment times returned from returnExpTimes(). Give me those times and I'll give you the powers!")
@@ -364,13 +365,13 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
             absTime.append((absStart,absStop))
         except exception as errtxt:
             pass
-            if dnpExp:
-                print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
-                return False,False,False
-            else:
-                print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
-                print errtxt
-                return False,False,False
+            #if dnpExp:
+            #    print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
+            #    return False,False,False
+            #else:
+            #    print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
+            #    print errtxt
+            #    return False,False,False
     expTime = list(expTime)
     for count,timeVal in enumerate(expTime):
         if timeVal < 0:
@@ -1121,7 +1122,7 @@ def integrate(file,expno,
         data.ft('t2',shift = True)
 
     data_shape = ndshape(data) # this is used to shape the output
-    #{{{ abs w/ max SNR, so we can pick the peak
+    #{{{ abs w/ ma SNR, so we can pick the peak
     data_abs = data.copy()
     data_abs['t2',(lambda x: abs(x)<peak_within)].data *= 0
     #{{{ apply the matched filter to maximize our SNR while picking the peak
@@ -1141,10 +1142,14 @@ def integrate(file,expno,
     #{{{ generate center --> an array with the value at the center of each scan
     data_center = data_abs.copy() # since data_abs is currently not used, but I want to use it to do matched filtered integration, really need to make a separate variable here
     f = data_center.getaxis('t2')
-    data_center['t2',abs(f-f[topavg])>max_drift] = 0# we need to keep the indeces in place, but don't want to pick anything too far out of the way
+    # If the spectrum is off resonance you need to account for this somehow...
+    # you could try setting max drift to the average resonant position, but you need to drop any outliers.
+    data_center['t2',abs(f-f[topavg])>max_drift] = 0 # we need to keep the indeces in place, but don't want to pick anything too far out of the way
     if test_drift_limit:
+        figurelist = nextfigure(figurelist,'driftLimitTest' + pdfstring)
         plot(data_center.reorder(['t2',dimname]))
-
+        xlim(f[topavg]-max_drift,f[topavg]+max_drift)
+        title('You Should See Every Peak In this Window')
     data_center_sum = data_center.copy()
     data_center_sum.sum_nopop('t2')
     data_center.data[:] /= data_center_sum.data # now the it sums to one so we can get a weighted average over the indeces
