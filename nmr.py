@@ -1122,7 +1122,7 @@ def integrate(file,expno,
         data.ft('t2',shift = True)
 
     data_shape = ndshape(data) # this is used to shape the output
-    #{{{ abs w/ max SNR, so we can pick the peak
+    #{{{ abs w/ ma SNR, so we can pick the peak
     data_abs = data.copy()
     data_abs['t2',(lambda x: abs(x)<peak_within)].data *= 0
     #{{{ apply the matched filter to maximize our SNR while picking the peak
@@ -1142,10 +1142,14 @@ def integrate(file,expno,
     #{{{ generate center --> an array with the value at the center of each scan
     data_center = data_abs.copy() # since data_abs is currently not used, but I want to use it to do matched filtered integration, really need to make a separate variable here
     f = data_center.getaxis('t2')
-    data_center['t2',abs(f-f[topavg])>max_drift] = 0# we need to keep the indeces in place, but don't want to pick anything too far out of the way
+    # If the spectrum is off resonance you need to account for this somehow...
+    # you could try setting max drift to the average resonant position, but you need to drop any outliers.
+    data_center['t2',abs(f-f[topavg])>max_drift] = 0 # we need to keep the indeces in place, but don't want to pick anything too far out of the way
     if test_drift_limit:
+        figurelist = nextfigure(figurelist,'driftLimitTest' + pdfstring)
         plot(data_center.reorder(['t2',dimname]))
-
+        xlim(f[topavg]-max_drift,f[topavg]+max_drift)
+        title('You Should See Every Peak In this Window')
     data_center_sum = data_center.copy()
     data_center_sum.sum_nopop('t2')
     data_center.data[:] /= data_center_sum.data # now the it sums to one so we can get a weighted average over the indeces
