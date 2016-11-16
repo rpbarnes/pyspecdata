@@ -468,10 +468,10 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
     # Do the first order correction
     c1,fit1 = baseline.polyfit('field',order = 1)
     fit1 = pys.nddata(array(c1[0] + absorption.getaxis('field')*c1[1])).rename('value','field').labels('field',absorption.getaxis('field'))
-    correctedAbs1st = absorption - fit1
+    correctedAbs1st = absorption.runcopy(real) - fit1.runcopy(real)
     c3,fit3 = baseline.polyfit('field',order = 3)
     fit3 = pys.nddata(array(c3[0] + absorption.getaxis('field')*c3[1] + (absorption.getaxis('field')**2)*c3[2] + (absorption.getaxis('field')**3)*c3[3])).rename('value','field').labels('field',absorption.getaxis('field'))
-    correctedAbs3rd = absorption - fit3
+    correctedAbs3rd = absorption.runcopy(real) - fit3.runcopy(real)
     #}}}
 
     # Set the values of absorption spec outside of int window to zero.#{{{
@@ -532,8 +532,8 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
             ax = pys.gca()
             ax.text(spinConc,diValue - (0.2*diValue),'%0.2f uM'%spinConc,color='blue',fontsize=15)
             pys.giveSpace()
-    else:
-        spinConc = None
+        else:
+            spinConc = None
             #}}}
     return spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc
     #}}}
