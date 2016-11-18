@@ -285,7 +285,7 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
         absTime.sort(key=lambda tup: tup[0])
         if abs(absTime[0][1] - absTime[1][0]) > abs(absTime[0][0] - absTime[0][1]):
             print "Throwing out value"
-            absTime.pop(0)
+            #absTime.pop(0)
 
         # align to the last spike
         offSet = absTime[-1][1] - timeBreak[-1] + bufferVal
