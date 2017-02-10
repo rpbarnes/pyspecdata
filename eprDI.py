@@ -208,7 +208,11 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
     try:
         expDict = returnEPRExpDict(fileName)
         specData = fromfile(fileName+'.spc','<f') # read the spc
-        centerSet = float(expDict.get('HCF'))
+        if expDict.get('HCF'):
+            centerSet = float(expDict.get('HCF'))
+        else:
+            centerSet = float(expDict.get('GST'))
+                
         sweepWidth = float(expDict.get('HSW'))
         if doNormalize:
             numScans = expDict.get('JNS') # I'm not sure if this is right

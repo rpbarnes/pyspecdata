@@ -316,7 +316,7 @@ def returnSplitPowers(fullPath,powerfile,absTime = False,bufferVal = 10,threshol
         raise ValueError("You did not pass me the absolute expeirment times returned from returnExpTimes(). Give me those times and I'll give you the powers!")
 #}}}
 
-def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
+def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix',debug=True):#{{{
     """ This reads the bruker meta data file audita.txt and returns the time elapsed for the given experiment.
 
     Args:
@@ -334,44 +334,36 @@ def returnExpTimes(fullPath,exps,dnpExp=True,operatingSys = 'posix'):#{{{
     expTime = []
     absTime = []
     for exp in exps:
-        try:
-            if operatingSys == 'nt':
-                opened = open(fullPath + '\\%s\\audita.txt'%exp)
-            else:
-                opened = open(fullPath + '/%s/audita.txt'%exp)
-            lines = opened.readlines()
-            absStart = lines[8].split(' ')[2] + ' ' + lines[8].split(' ')[3]
-            splitup = re.findall(r"[\w']+",absStart)
-            absStart = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
-            absStart = time.mktime(absStart.utctimetuple()) # this returns seconds since the epoch
-            start = lines[8].split(' ')[3]
-            start = start.split(':') # hours,min,second
-            hour = int(start[0],10)*3600
-            minute = int(start[1],10)*60
-            second = int(start[2].split('.')[0],10)
-            start = second+minute+hour # in seconds
-            absStop = lines[6].split('<')[1].split('>')[0].split(' ')
-            absStop = absStop[0] + ' ' + absStop[1]
-            splitup = re.findall(r"[\w']+",absStop)
-            absStop = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
-            absStop = time.mktime(absStop.utctimetuple()) # this returns seconds since the epoch
-            stop = lines[6].split(' ')[4]
-            stop = stop.split(':')
-            hour = int(stop[0],10)*3600
-            minute = int(stop[1],10)*60
-            second = int(stop[2].split('.')[0],10)
-            stop = second+minute+hour # in seconds
-            expTime.append(stop-start)
-            absTime.append((absStart,absStop))
-        except exception as errtxt:
-            pass
-            #if dnpExp:
-            #    print "\n\n%d is not a valid enhancement experiment number. Please re-run and set dnpExps appropriately. Note you will also need to change t1Exp. \n\n" 
-            #    return False,False,False
-            #else:
-            #    print "\n\n%d is not a valid T1 experiment number. Please re-run and set t1Exp appropriately. Note you will also need to change dnpExps. \n\n"%exp 
-            #    print errtxt
-            #    return False,False,False
+        if debug:
+            print "Reading Experiment: ",exp
+        if operatingSys == 'nt':
+            opened = open(fullPath + '\\%s\\audita.txt'%exp)
+        else:
+            opened = open(fullPath + '/%s/audita.txt'%exp)
+        lines = opened.readlines()
+        absStart = lines[8].split(' ')[2] + ' ' + lines[8].split(' ')[3]
+        splitup = re.findall(r"[\w']+",absStart)
+        absStart = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
+        absStart = time.mktime(absStart.utctimetuple()) # this returns seconds since the epoch
+        start = lines[8].split(' ')[3]
+        start = start.split(':') # hours,min,second
+        hour = int(start[0],10)*3600
+        minute = int(start[1],10)*60
+        second = int(start[2].split('.')[0],10)
+        start = second+minute+hour # in seconds
+        absStop = lines[6].split('<')[1].split('>')[0].split(' ')
+        absStop = absStop[0] + ' ' + absStop[1]
+        splitup = re.findall(r"[\w']+",absStop)
+        absStop = datetime.datetime(int(splitup[0]),int(splitup[1]),int(splitup[2]),int(splitup[3]),int(splitup[4]),int(splitup[5]),int(splitup[6]))
+        absStop = time.mktime(absStop.utctimetuple()) # this returns seconds since the epoch
+        stop = lines[6].split(' ')[4]
+        stop = stop.split(':')
+        hour = int(stop[0],10)*3600
+        minute = int(stop[1],10)*60
+        second = int(stop[2].split('.')[0],10)
+        stop = second+minute+hour # in seconds
+        expTime.append(stop-start)
+        absTime.append((absStart,absStop))
     expTime = list(expTime)
     for count,timeVal in enumerate(expTime):
         if timeVal < 0:
@@ -1222,7 +1214,6 @@ def integrate(file,expno,
     #}}}
     if show_image:
         plot_newdata = newdata.copy() # make a backup for plotting
-    newdata.sum('t2') # integrate --> note that I converted this to a sum!
     #{{{ autophase
     if not indiv_phase:
         phaseoptval = phaseopt(newdata.data)
@@ -1247,6 +1238,7 @@ def integrate(file,expno,
             except:
                 print 'shape of newdatacopy',ndshape(newdatacopy)
                 print 'shape of newdata',ndshape(newdata)
+    newdata.sum('t2') # integrate --> note that I converted this to a sum!
     #}}}
     #{{{ show what we're integrating
     if show_image:
