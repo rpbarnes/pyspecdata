@@ -9,10 +9,12 @@ def xlsxToDict(sheet):#{{{
 
     """
     paramDict = {}
-    headerCol = sheet.columns[0]
-    totalLen = len(headerCol) 
+    #headerCol = sheet.columns[0]
+    #totalLen = len(headerCol) 
     for count,column in enumerate(sheet.columns):
         currentIndex = column[0].value
+        if count == 0:
+            totalLen = len(column)
         if currentIndex != None:
             print currentIndex
             valuesList = []
