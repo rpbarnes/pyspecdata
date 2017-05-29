@@ -258,7 +258,8 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     """
     peaks = []
     valleys = []
-    smash = spec.copy()
+    hrf = linspace(spec.getaxis('field').min(),spec.getaxis('field').max(),10000)
+    smash = spec.interp('field',hrf).runcopy(real) # use an interpolated higher res spec to get a more accurate esitmate of linewidth
     #smash -= average(spec.data)
     for i in range(numberOfPeaks): 
         peak = smash.data.argmax()
@@ -403,13 +404,12 @@ eprPath = '/Users/StupidRobot/exp_data/ryan_cnsi/epr/150707_CheY_8MUreaSeries/'
 eprName = 'M17C_8MUrea_10-9mm'
 eprName = eprPath + eprName
 
-### This should be a function.
 def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=False,firstFigure=[]): #{{{ EPR Workup stuff
     """
     Perform the epr baseline correction and double integration.
 
     Args:
-    eprName - string - full name of the EPR file.
+    eprName - string - full name of the EPR file without the file extension.
 
     Returns:
     spec - nddata - the EPR spectra with other info set to the EPR params dict.
@@ -424,6 +424,7 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
     spec,normalized = returnEPRSpec(eprName)
     peak,valley = findPeaks(spec,numPeaks)
     lineWidths = valley.getaxis('field') - peak.getaxis('field') 
+    amplitudes = peak.data - valley.data
     spectralWidth = peak.getaxis('field').max() - peak.getaxis('field').min() 
     # determine the center field
     if numPeaks == 2:
@@ -539,7 +540,7 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
         else:
             spinConc = None
             #}}}
-    return spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc
+    return spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc,amplitudes
     #}}}
 
 #spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc = workupCwEpr(eprName)
