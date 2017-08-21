@@ -8,7 +8,6 @@ You should make this dump the spectrum and the double integral to the database w
 import matlablike as pys
 from numpy import *
 import csv
-import fornotebook as fnb
 import os
 
 pys.close('all')

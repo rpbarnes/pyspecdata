@@ -784,7 +784,7 @@ def bruker_det_phcorr(v):
     if v['DIGMOD']==1:
         gdparray=array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[179,201,533,709,1097,1449,2225,2929,4481,5889,8993,11809,18017,23649,36065,47329,72161,94689,144353,189409,288737],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[184,219,384,602,852,1668,2292,3368,4616,6768,9264,13568,18560,27392,36992,55040,73856,110336,147584,220928,295040]])
         decimarray=array([2,3,4,6,8,12,16,24,32,48,64,96,128,192,256,384,512,768,1024]) # the -1 is because this is an index, and copied from matlab code!!!
-        dspfvs = v['DSPFVS']
+        dspfvs = int(v['DSPFVS'])
         decim = v['DECIM']
         try:
             retval = gdparray[dspfvs,where(decimarray==decim)[0]]/2/decim
@@ -1052,6 +1052,7 @@ def integrate(file,expno,
         offset_corr = 0,
         forceGlitch=False,
         timeZeroGlitch = True,
+        breakIntegrate = False,
         test_drift_limit = False):
     r'''new integration function, which replaces integrate_emax, and is used to integrate data, as for Emax and T1 curves'''
     #print lsafen("DEBUG: yes, integrate was called")
@@ -1064,6 +1065,8 @@ def integrate(file,expno,
     phcycdims = ['phcyc%d'%j for j in range(1,len(phnum)+1)]
     data = load_file(file,expno,dimname = dimname, add_sizes = phnum,add_dims = phcycdims) # load the data
     #{{{ offset correction
+    if breakIntegrate:
+        return data,figurelist
     if type(offset_corr) is list:
         offset_corr = array(offset_corr)
     if type(offset_corr) is ndarray:
@@ -1463,7 +1466,10 @@ def regularize1d(b,t,tau,alpha):
 #}}}
 #{{{ matched filter
 def matched_filter(data,along_dim,decay_rate = 1,return_fit=False):
-    r'''take ift'd data, and apply the matched filter to it'''
+    r'''take ift'd data, and apply the matched filter to it
+    This takes time domain data, fits it to decaying exponent and applys the fit to the data to apodize the signal
+    
+    '''
     #{{{ actually find the filter   
     data_abs = abs(data)
     timeaxis = data_abs.getaxis('t2')
