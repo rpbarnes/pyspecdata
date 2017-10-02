@@ -11,7 +11,6 @@ import csv
 import os
 
 pys.close('all')
-fl = fnb.figlist()
 
 # Various Definitions and classes#{{{
 def calcSpinConc(calibrationFile):#{{{
@@ -207,6 +206,13 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
     try:
         expDict = returnEPRExpDict(fileName)
         specData = fromfile(fileName+'.spc','<f') # read the spc
+        sizeY = expDict.get('SSY')
+        if sizeY: # this is a two dimensional data set
+            sizeY = int(sizeY)
+            sizeX = int(expDict.get('SSX'))
+            xU = expDict.get('XXUN')
+            yU = expDict.get('XYUN')
+            specData = specData.reshape((sizeY,sizeX))
         if expDict.get('HCF'):
             centerSet = float(expDict.get('HCF'))
         else:
@@ -238,10 +244,26 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
         if doNormalize:
             specData /= rg
         normalized = 'good'
+        sizeY = False
     # calculate the field values and normalize by the number of scans and the receiver gain and return an nddata
-    fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:len(specData)*1j]
-    # normalize the data so there is coherence between different scans.
-    spec = pys.nddata(specData).rename('value','field').labels('field',fieldVals)
+    # The data is two dimensional so find second dimension and 
+    if sizeY:
+        fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:sizeX*1j]
+        LB = float(expDict.get('XYLB'))
+        width = float(expDict.get('XYWI'))
+        yDim = pys.r_[LB : LB + width : sizeY*1j]
+        if yU == 'dB': # Change it to power mW.
+            yDim = 200 * 10**(-1*yDim / 10)
+            yU = 'mW'
+
+        dataShape = pys.ndshape([sizeY, sizeX],[yU, xU])
+        data = dataShape.alloc(dtype='float')
+        data.data = specData
+        spec = data
+        spec.labels([yU, xU],[yDim, fieldVals])
+    else:
+        fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:len(specData)*1j]
+        spec = pys.nddata(specData).rename('value','field').labels('field',fieldVals)
     spec.other_info = expDict
     return spec,normalized #}}}
 
@@ -329,7 +351,7 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     return peak,valley
 #}}}
 
-def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],showPlots=True):
+def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],showPlots=True):# {{{
     fileName = path+name
     # check for the time file
     if os.path.isfile(fileName+'Time.npy'):
@@ -395,7 +417,7 @@ def returnt2TwoDim(path,name,extension='.DTA',runsToCut=False,firstFigure=[],sho
             pys.ylabel('$Magnetization$')
             pys.colorbar()
             pys.title('Run Selection')
-    return data2d
+    return data2d# }}}
 #}}}
 
 ### Import the files - for now this is hard coded and this only works with ASCII files, you need to change this so you can use the par files as well.
