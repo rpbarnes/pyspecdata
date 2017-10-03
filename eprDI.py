@@ -447,7 +447,7 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
     firstFigure.append({'print_string':r'\subparagraph{EPR Spectra %s}'%eprName + '\n\n'})
     eprFileName = eprName.split('\\')[-1]
     # Pull the specs, Find peaks, valleys, and calculate things with the EPR spectrum.#{{{
-    spec,normalized = returnEPRSpec(eprName)
+    spec,normalized = returnEPRSpec(eprName,resample=True)
     peak,valley = findPeaks(spec,numPeaks)
     lineWidths = valley.getaxis('field') - peak.getaxis('field') 
     amplitudes = peak.data - valley.data
