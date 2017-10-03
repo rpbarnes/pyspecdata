@@ -254,7 +254,7 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
         width = float(expDict.get('XYWI'))
         yDim = pys.r_[LB : LB + width : sizeY*1j]
         if yU == 'dB': # Change it to power mW.
-            yDim = 200 * 10**(-1*yDim / 10)
+            yDim = 197.9 * 10**(-1*yDim / 10)
             yU = 'mW'
 
         dataShape = pys.ndshape([sizeY, sizeX],[yU, xU])
