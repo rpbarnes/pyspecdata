@@ -182,7 +182,7 @@ def returnPulseEPRSpec(fileName,expType = 'fieldDomain',spect='xepr'):#{{{
 
 #}}}
 
-def returnEPRSpec(fileName,doNormalize = True): #{{{
+def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
     """ 
     *** This code is crappy
 
@@ -210,7 +210,7 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
         if sizeY: # this is a two dimensional data set
             sizeY = int(sizeY)
             sizeX = int(expDict.get('SSX'))
-            xU = expDict.get('XXUN')
+            xU = 'field'
             yU = expDict.get('XYUN')
             specData = specData.reshape((sizeY,sizeX))
         if expDict.get('HCF'):
@@ -245,6 +245,7 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
             specData /= rg
         normalized = 'good'
         sizeY = False
+
     # calculate the field values and normalize by the number of scans and the receiver gain and return an nddata
     # The data is two dimensional so find second dimension and 
     if sizeY:
@@ -264,6 +265,10 @@ def returnEPRSpec(fileName,doNormalize = True): #{{{
     else:
         fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:len(specData)*1j]
         spec = pys.nddata(specData).rename('value','field').labels('field',fieldVals)
+    if resample:
+        # down sample the data to 512. This is for output to the multicomponent fitting program.
+        newField = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:512*1j]
+        spec = spec.interp(xU,newField)
     spec.other_info = expDict
     return spec,normalized #}}}
 
