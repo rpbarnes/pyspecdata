@@ -206,11 +206,11 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
     try:
         expDict = returnEPRExpDict(fileName)
         specData = fromfile(fileName+'.spc','<f') # read the spc
+        xU = 'field'
         sizeY = expDict.get('SSY')
         if sizeY: # this is a two dimensional data set
             sizeY = int(sizeY)
             sizeX = int(expDict.get('SSX'))
-            xU = 'field'
             yU = expDict.get('XYUN')
             specData = specData.reshape((sizeY,sizeX))
         if expDict.get('HCF'):
@@ -264,7 +264,7 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
         spec.labels([yU, xU],[yDim, fieldVals])
     else:
         fieldVals = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:len(specData)*1j]
-        spec = pys.nddata(specData).rename('value','field').labels('field',fieldVals)
+        spec = pys.nddata(specData).rename('value',xU).labels(xU,fieldVals)
     if resample:
         # down sample the data to 512. This is for output to the multicomponent fitting program.
         newField = pys.r_[centerSet-sweepWidth/2.:centerSet+sweepWidth/2.:512*1j]
@@ -285,7 +285,8 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
     peaks = []
     valleys = []
     hrf = linspace(spec.getaxis('field').min(),spec.getaxis('field').max(),10000)
-    smash = spec.interp('field',hrf).runcopy(real) # use an interpolated higher res spec to get a more accurate esitmate of linewidth
+    smash = spec.copy().interp('field',hrf).runcopy(real) # use an interpolated higher res spec to get a more accurate esitmate of linewidth
+    hrs = smash.copy()
     #smash -= average(spec.data)
     for i in range(numberOfPeaks): 
         peak = smash.data.argmax()
@@ -348,8 +349,8 @@ def findPeaks(spec,numberOfPeaks,verbose = False):#{{{
         smash['field',lowBound:highBound] = 0.0
         if verbose:
             pys.plot(smash)
-    peak = pys.nddata(spec.data[peaks]).rename('value','field').labels('field',spec.getaxis('field')[peaks])
-    valley = pys.nddata(spec.data[valleys]).rename('value','field').labels('field',spec.getaxis('field')[valleys])
+    peak = pys.nddata(hrs.data[peaks]).rename('value','field').labels('field',hrs.getaxis('field')[peaks])
+    valley = pys.nddata(hrs.data[valleys]).rename('value','field').labels('field',hrs.getaxis('field')[valleys])
     # Calculate relevant parameters
     peak.sort('field')
     valley.sort('field')
