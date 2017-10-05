@@ -13,6 +13,29 @@ import os
 pys.close('all')
 
 # Various Definitions and classes#{{{
+def loadEPRFits(fileName):# {{{
+    """
+    Load in the fitting data that the multi component fitting program returns.
+
+    """
+    fileHandle = open(fileName,'r')
+    lines = fileHandle.readlines()
+# find out how many data lists I need.
+    numSets = len(lines[0].split('\r\n')[0].split('\t'))
+# the structure is C0 - field, C1 - data, C2 - fit result, C3 - weights, C4 - component 1, C5 - component 2, C6 and on are more components. 
+    numComps = numSets - 4
+    toStore = zeros((len(lines), numSets))
+    for count, line in enumerate(lines):
+        line = line.split('\r\n')[0].split('\t')
+        for count1, item in enumerate(line):
+            toStore[count, count1] = item
+    rawData = pys.nddata(toStore[:,1]).rename('value','field').labels('field',toStore[:,0])
+    fit = pys.nddata(toStore[:,2]).rename('value','field').labels('field',toStore[:,0])
+    components = {}
+    for i in range(numComps):
+        components.update({'%i'%i: pys.nddata(toStore[:,i+4]).rename('value','field').labels('field',toStore[:,0])})
+    return rawData, fit, components# }}}
+
 def calcSpinConc(calibrationFile):#{{{
     """
     Use the EPR Double integral value to calculate the sample concentration given a calibration file.
@@ -207,10 +230,10 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
     expDict = returnEPRExpDict(fileName)
     specData = fromfile(fileName+'.spc','<f') # read the spc
     sizeY = expDict.get('SSY')
+    xU = 'field'
     if sizeY: # this is a two dimensional data set
         sizeY = int(sizeY)
         sizeX = int(expDict.get('SSX'))
-        xU = 'field'
         yU = expDict.get('XYUN')
         specData = specData.reshape((sizeY,sizeX))
     if expDict.get('HCF'):
@@ -227,8 +250,6 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
         numScans = expDict.get('JNS') # I'm not sure if this is right
         if numScans:
             numScans = float(numScans)
-        else:
-            numScans = 1
         else:
             numScans = 1
         specData /= numScans # normalize by number of scans
