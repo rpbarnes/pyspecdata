@@ -203,48 +203,52 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
     1-D nddata dimensioned by field values of spectrum, and containing the EPR experimental parameters as other_info.
     """
     # Open the spc and par files and pull the data and relevant parameters
-    try:
-        expDict = returnEPRExpDict(fileName)
-        specData = fromfile(fileName+'.spc','<f') # read the spc
-        sizeY = expDict.get('SSY')
-        if sizeY: # this is a two dimensional data set
-            sizeY = int(sizeY)
-            sizeX = int(expDict.get('SSX'))
-            xU = 'field'
-            yU = expDict.get('XYUN')
-            specData = specData.reshape((sizeY,sizeX))
-        if expDict.get('HCF'):
-            centerSet = float(expDict.get('HCF'))
+    #try:
+    expDict = returnEPRExpDict(fileName)
+    specData = fromfile(fileName+'.spc','<f') # read the spc
+    sizeY = expDict.get('SSY')
+    if sizeY: # this is a two dimensional data set
+        sizeY = int(sizeY)
+        sizeX = int(expDict.get('SSX'))
+        xU = 'field'
+        yU = expDict.get('XYUN')
+        specData = specData.reshape((sizeY,sizeX))
+    if expDict.get('HCF'):
+        centerSet = float(expDict.get('HCF'))
+    elif expDict.get('XXLB'):
+        lowBound = float(expDict.get('XXLB'))
+        width = float(expDict.get('XXWI'))
+        centerSet = lowBound + width/2.
+    else:
+        centerSet = float(expDict.get('GST'))
+            
+    sweepWidth = float(expDict.get('HSW'))
+    if doNormalize:
+        numScans = expDict.get('JNS') # I'm not sure if this is right
+        if numScans:
+            numScans = float(numScans)
         else:
-            centerSet = float(expDict.get('GST'))
-                
-        sweepWidth = float(expDict.get('HSW'))
-        if doNormalize:
-            numScans = expDict.get('JNS') # I'm not sure if this is right
-            if numScans:
-                numScans = float(numScans)
-            else:
-                numScans = 1
-            specData /= numScans # normalize by number of scans
-            if expDict.get('RRG'):
-                rg = float(expDict.get('RRG'))
-                modAmp = float(expDict.get('RMA'))
-                specData /= modAmp # normalize by modulation amplitude
-                specData /= rg # normalize by receiver gain
-                normalized = 'good'
-            else:
-                normalized = 'bad'
-    except:
-        expDict = returnEPRExpDictDSC(fileName)
-        specData = fromfile(fileName+'.DTA','>c') # or if it is a DTA file read that instead
-        centerSet = float(expDict.get('CenterField').split(' ')[0])
-        sweepWidth = float(expDict.get('SweepWidth').split(' ')[0])
-        numScans = float(expDict.get('NbScansAcc')) # Yea bruker just changes things...
-        rg = float(expDict.get('RCAG'))
-        if doNormalize:
-            specData /= rg
-        normalized = 'good'
-        sizeY = False
+            numScans = 1
+        specData /= numScans # normalize by number of scans
+        if expDict.get('RRG'):
+            rg = float(expDict.get('RRG'))
+            modAmp = float(expDict.get('RMA'))
+            specData /= modAmp # normalize by modulation amplitude
+            specData /= rg # normalize by receiver gain
+            normalized = 'good'
+        else:
+            normalized = 'bad'
+    #except:
+    #    expDict = returnEPRExpDictDSC(fileName)
+    #    specData = fromfile(fileName+'.DTA','>c') # or if it is a DTA file read that instead
+    #    centerSet = float(expDict.get('CenterField').split(' ')[0])
+    #    sweepWidth = float(expDict.get('SweepWidth').split(' ')[0])
+    #    numScans = float(expDict.get('NbScansAcc')) # Yea bruker just changes things...
+    #    rg = float(expDict.get('RCAG'))
+    #    if doNormalize:
+    #        specData /= rg
+    #    normalized = 'good'
+    #    sizeY = False
 
     # calculate the field values and normalize by the number of scans and the receiver gain and return an nddata
     # The data is two dimensional so find second dimension and 
