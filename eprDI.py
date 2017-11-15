@@ -89,7 +89,6 @@ def returnEPRExpDict(fileName,extension = '.par',verbose=False):#{{{
                 key = splitData[0].split(' ')[0]
                 value = splitData[1]
             else:
-                print "poop"
                 splitData = line.split(' ')
                 key = splitData.pop(0)
                 value = splitData.pop(0)
