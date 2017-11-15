@@ -13,6 +13,39 @@ import os
 pys.close('all')
 
 # Various Definitions and classes#{{{
+def findPeaksSequential(dataArray, windowSize = 3, threshold = 0.2): # {{{
+    """ this finds peaks in the EPR spectrum by a sequential peak finding algorithm. Returns index of peak positions in data set.
+    Input:
+    dataArray - (array) of EPR spectrum
+    windowSize - (int) size of window to find peak in
+    threshold - (float) threshold cutoff. Only values above threshold will be recorded as peaks.
+
+    Returns:
+    peaks - (list) index values of peak positions
+    """
+
+    peaks = []
+    counter = 0
+    currentMaxIndex = False
+
+    for index in range(len(dataArray)):
+        if currentMaxIndex: # We have a currentMaxIndex if we're climbing a peak
+            if dataArray[index] >= dataArray[currentMaxIndex]: # the new point is greater than my current maximum point. Reset max index and counter
+                currentMaxIndex = index
+                counter = 0
+            else: # my current max is still the max
+                counter += 1
+            if counter >= windowSize: # I've found a peak
+                peaks.append(currentMaxIndex)
+                currentMaxIndex = False
+                counter = 0
+
+        else: # We don't have a currentMaxIndex, check to see if we've started climbing again
+            if (index > windowSize) and (dataArray[index] >= threshold):
+                if dataArray[index] > dataArray[index - 1]:
+                    currentMaxIndex = index
+    return peaks# }}}
+
 def loadEPRFits(fileName):# {{{
     """
     Load in the fitting data that the multi component fitting program returns.
