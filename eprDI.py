@@ -293,6 +293,8 @@ def returnEPRSpec(fileName,doNormalize = True, resample=False): #{{{
             normalized = 'good'
         else:
             normalized = 'bad'
+    else:
+        normalized = 'None'
     #except:
     #    expDict = returnEPRExpDictDSC(fileName)
     #    specData = fromfile(fileName+'.DTA','>c') # or if it is a DTA file read that instead
@@ -629,6 +631,6 @@ def workupCwEpr(eprName,spectralWidthMultiplier = 1.25,numPeaks=3,EPRCalFile=Fal
     return spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc,amplitudes
     #}}}
 
-#spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc = workupCwEpr(eprName)
+#spec,lineWidths,spectralWidth,centerField,doubleIntZC,doubleIntC3,diValue,spinConc,amplitudes = workupCwEpr(eprName)
 
 
